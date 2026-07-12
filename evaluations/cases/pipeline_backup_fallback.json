@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_backup_fallback",
+  "kind": "pipeline",
+  "scenario": "backup_fallback",
+  "expected_status": "released",
+  "description": "Repeated malformed primary output triggers a recorded fallback to the backup alias."
+}

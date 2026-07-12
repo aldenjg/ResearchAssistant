@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_exact_quote_escalation",
+  "kind": "pipeline",
+  "scenario": "exact_quote_escalation",
+  "expected_status": "released",
+  "description": "Exact-quote verification failure objectively escalates the extractor to MiMo Pro."
+}

@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_analyst_reject_low_scores",
+  "kind": "pipeline",
+  "scenario": "analyst_reject_low_scores",
+  "expected_status": "released",
+  "description": "Ineligible two-axis scores keep evidence out of the Ledger."
+}

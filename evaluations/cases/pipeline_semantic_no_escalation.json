@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_semantic_no_escalation",
+  "kind": "pipeline",
+  "scenario": "semantic_no_escalation",
+  "expected_status": "released",
+  "description": "An empty extraction is a semantic judgment and never causes a model switch."
+}

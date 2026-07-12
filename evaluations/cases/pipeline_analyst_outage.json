@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_analyst_outage",
+  "kind": "pipeline",
+  "scenario": "analyst_outage",
+  "expected_status": "failed",
+  "description": "A full Analyst outage fails the run explicitly with no approved statements."
+}

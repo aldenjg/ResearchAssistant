@@ -1,0 +1,7 @@
+{
+  "case_id": "regression_altered_statement",
+  "kind": "mutation",
+  "attack": "altered_statement",
+  "expected": "blocked",
+  "description": "Regression fixture for the historical altered-statement failure mode captured by the Phase 6 invalid_release_run fixture; any future validator escape discovered by evaluations must be added here as a new regression case."
+}

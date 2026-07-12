@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_altered_statement",
+  "kind": "mutation",
+  "attack": "altered_statement",
+  "expected": "blocked",
+  "description": "Appending words to an approved statement must block release."
+}

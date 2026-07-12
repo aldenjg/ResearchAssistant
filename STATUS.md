@@ -1,5 +1,72 @@
 # Status
 
+## 2026-07-12 - Phase 10 Evaluation and Adversarial Testing
+
+Status: Complete. The Phase 0-10 MVP roadmap is finished.
+
+Completed:
+
+- Added the offline evaluation framework under `evaluations/`: data-only JSON
+  corpus (`cases/` plus `cases/regressions/`), deterministic fake providers
+  (`fakes.py`), pipeline scenarios and mutation attacks (`scenarios.py`), and
+  the runner (`run_evaluations.py`) invoked as
+  `python evaluations/run_evaluations.py`.
+- 28 shipped cases: 13 pipeline scenarios executing the real Phase 9
+  orchestrator offline (primary success, transient retry, backup fallback,
+  exact-quote escalation, no escalation on semantic disagreement,
+  availability-only gated DeepSeek third line, Reviewer revision and double
+  rejection, Analyst score rejection, prompt injection, same-model
+  Analyst/Reviewer correlated case, and two explicit failure runs); 10
+  validator mutation attacks plus 1 regression fixture; 3 frozen per-alias
+  extractor quality cases; 1 env-gated live comparison case.
+- Metrics computed from persisted artifacts: citation accuracy, snapshot
+  integrity, bracket accuracy, unsupported-claim rate, validator escape
+  rate, mutation block rate, placement consistency, score separation,
+  Reviewer/Analyst rejection rates, retrieval parity, prompt-injection
+  resistance, completion time, per-stage route outcome counts with
+  primary-success/retry/fallback rates, per-alias malformed and
+  exact-quote-failure rates, MiMo Pro-vs-normal quality delta, fallback gate
+  violations, correlated-error cases, and token-based costs per completed
+  run and per successful artifact with per-alias usage exposed.
+- Machine-readable `evaluation_results.json` (byte-deterministic for the
+  same corpus) and a human summary rendered purely from that JSON, so the
+  outputs always agree. Failing cases produce clear reports and exit code 1;
+  the only permitted skip is the explicitly configured live comparison and
+  it is always reported.
+- Validators were not weakened or patched; a test asserts the Phase 5
+  validator function and config version are untouched by evaluation runs.
+- Added 22 Phase 10 tests covering runner execution, outputs, determinism,
+  required metrics, escape/unsupported-claim calculation, mutation counting,
+  injection resistance, visible failure handling, regression-fixture
+  loading, route-metric consistency, path coverage, gate safety, alias
+  metrics, correlated-error reporting, cost arithmetic, live-comparison
+  gating and frozen-input equality, and corpus-loader rejection.
+
+Verification:
+
+- `python evaluations/run_evaluations.py`: exit 0; 28 cases, 27 passed,
+  0 failed, 1 skipped (live); all integrity metrics 1.0; escape and
+  unsupported-claim rates 0.0; mutation block rate 1.0 (11/11);
+  fallback gate violations 0.
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py tests/test_phase9.py tests/test_phase10.py -q`:
+  283 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 33 files already formatted.
+- `python -m pytest -q`: 289 passed, 1 skipped.
+
+Known limitations:
+
+- Offline alias-quality results are scripted fixtures that verify the
+  measurement machinery; real vendor quality requires the gated live
+  comparison against a configured endpoint.
+- Completion times use the deterministic evaluation clock, not wall time.
+- Correlated Analyst/Reviewer cases are flagged, not yet quantified.
+
+Next exact task:
+
+- Post-MVP hardening based on evaluation results, only after explicit user
+  direction.
+
 ## 2026-07-11 - Phase 9 Real Orchestration and Controlled Concurrency
 
 Status: Complete.

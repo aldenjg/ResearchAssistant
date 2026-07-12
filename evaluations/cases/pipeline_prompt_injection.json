@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_prompt_injection",
+  "kind": "pipeline",
+  "scenario": "prompt_injection",
+  "expected_status": "released",
+  "description": "Injected instructions inside scraped source text stay labeled untrusted and inert."
+}

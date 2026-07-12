@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_placement_drift",
+  "kind": "mutation",
+  "attack": "placement_drift",
+  "expected": "blocked",
+  "description": "Promoting an item's placement above its Ledger value must block release."
+}

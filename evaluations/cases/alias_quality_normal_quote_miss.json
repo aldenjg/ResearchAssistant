@@ -1,0 +1,17 @@
+{
+  "case_id": "alias_quality_normal_quote_miss",
+  "kind": "alias_quality",
+  "stage": "extractor",
+  "frozen_input": "standard_page",
+  "responses": {
+    "mimo-v2.5": "bad_quote",
+    "mimo-v2.5-pro": "good_quote",
+    "deepseek-v4-flash": "bad_quote"
+  },
+  "expected": {
+    "mimo-v2.5": "exact_quote_failure",
+    "mimo-v2.5-pro": "pass",
+    "deepseek-v4-flash": "exact_quote_failure"
+  },
+  "description": "Frozen case where only MiMo Pro quotes the snapshot verbatim."
+}

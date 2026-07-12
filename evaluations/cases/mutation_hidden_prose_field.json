@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_hidden_prose_field",
+  "kind": "mutation",
+  "attack": "hidden_prose_field",
+  "expected": "blocked",
+  "description": "Hidden renderable fields smuggled onto items must block release."
+}

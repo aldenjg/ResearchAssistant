@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_unknown_ledger_claim",
+  "kind": "mutation",
+  "attack": "unknown_ledger_claim",
+  "expected": "blocked",
+  "description": "A Ledger claim ID absent from the Ledger must block release."
+}

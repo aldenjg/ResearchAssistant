@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_reviewer_double_reject",
+  "kind": "pipeline",
+  "scenario": "reviewer_double_reject",
+  "expected_status": "released",
+  "description": "A second Reviewer rejection permanently rejects the quote block."
+}

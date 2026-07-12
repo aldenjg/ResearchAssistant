@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_third_line_availability",
+  "kind": "pipeline",
+  "scenario": "third_line_availability",
+  "expected_status": "released",
+  "description": "DeepSeek third line is reachable only after availability failures and stays fully gated."
+}

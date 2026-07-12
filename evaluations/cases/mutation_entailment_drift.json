@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_entailment_drift",
+  "kind": "mutation",
+  "attack": "entailment_drift",
+  "expected": "blocked",
+  "description": "Changing an item's entailment label must block release."
+}

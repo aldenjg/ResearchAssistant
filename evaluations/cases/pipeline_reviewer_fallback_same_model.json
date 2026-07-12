@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_reviewer_fallback_same_model",
+  "kind": "pipeline",
+  "scenario": "reviewer_fallback_same_model",
+  "expected_status": "released",
+  "description": "Reviewer fallback to the Analyst's model is reported as a correlated-error case."
+}

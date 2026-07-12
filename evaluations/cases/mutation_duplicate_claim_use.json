@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_duplicate_claim_use",
+  "kind": "mutation",
+  "attack": "duplicate_claim_use",
+  "expected": "blocked",
+  "description": "Using one Ledger claim more than permitted must block release."
+}

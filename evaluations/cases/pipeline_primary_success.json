@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_primary_success",
+  "kind": "pipeline",
+  "scenario": "primary_success",
+  "expected_status": "released",
+  "description": "Every stage succeeds on its MiMo-first primary alias with no fallback."
+}

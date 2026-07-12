@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_unapproved_template",
+  "kind": "mutation",
+  "attack": "unapproved_template",
+  "expected": "blocked",
+  "description": "A connective template outside the approved registry must block release."
+}

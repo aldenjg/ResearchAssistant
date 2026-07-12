@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_one_side_search_failure",
+  "kind": "pipeline",
+  "scenario": "one_side_search_failure",
+  "expected_status": "failed",
+  "description": "A one-sided search outage fails the run explicitly instead of running unbalanced."
+}

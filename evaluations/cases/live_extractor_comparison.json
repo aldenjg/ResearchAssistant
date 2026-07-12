@@ -1,0 +1,11 @@
+{
+  "case_id": "live_extractor_comparison",
+  "kind": "live_comparison",
+  "stage": "extractor",
+  "frozen_input": "standard_page",
+  "aliases": [
+    "mimo-v2.5",
+    "deepseek-v4-flash"
+  ],
+  "description": "Optional live extractor comparison of MiMo V2.5 versus DeepSeek V4 Flash on the same frozen inputs; skipped unless RUN_LIVE_EVALUATIONS=1."
+}

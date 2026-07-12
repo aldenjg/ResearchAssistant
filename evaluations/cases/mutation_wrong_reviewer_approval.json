@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_wrong_reviewer_approval",
+  "kind": "mutation",
+  "attack": "wrong_reviewer_approval",
+  "expected": "blocked",
+  "description": "A mismatched reviewer approval ID must block release."
+}

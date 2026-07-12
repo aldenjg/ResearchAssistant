@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_reviewer_revision",
+  "kind": "pipeline",
+  "scenario": "reviewer_revision",
+  "expected_status": "released",
+  "description": "A first Reviewer rejection allows exactly one revision before approval."
+}

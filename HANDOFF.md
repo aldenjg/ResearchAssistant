@@ -1,5 +1,87 @@
 # Handoff
 
+## 2026-07-12 - Phase 10 Evaluation and Adversarial Testing
+
+Current branch:
+
+- `master`
+
+Latest completed phase:
+
+- Phase 10 Evaluation and Adversarial Testing. The Phase 0-10 MVP roadmap is
+  complete.
+
+Files changed:
+
+- `evaluations/__init__.py`, `evaluations/fakes.py`,
+  `evaluations/scenarios.py`, `evaluations/run_evaluations.py`,
+  `evaluations/README.md`, `evaluations/.gitignore` (all new)
+- `evaluations/cases/` (27 case files) and
+  `evaluations/cases/regressions/regression_altered_statement.json` (new)
+- `tests/test_phase10.py` (new)
+- `.agent/plans/phase-10-evaluation.md`
+- `STATUS.md`
+- `HANDOFF.md`
+
+No earlier-phase implementation file or validator was modified.
+
+Decisions made:
+
+- Keep the corpus data-only (JSON cases) with scenario logic and mutation
+  attacks in code, so new cases — especially regression fixtures for any
+  discovered validator escape — are added as files.
+- Compute metrics from persisted run artifacts rather than case
+  expectations, so the evaluation measures the system, not itself.
+- Make outputs deterministic (fixed uuid5 run IDs, deterministic clock, no
+  wall-clock or paths in JSON) and derive the human summary purely from the
+  machine-readable results so the two always agree.
+- Gate the live model comparison behind `RUN_LIVE_EVALUATIONS=1` with an
+  explicit reported skip otherwise; it reuses the exact frozen inputs from
+  the offline alias-quality corpus and records aliases, pinned snapshots,
+  and input hashes.
+- Change routing defaults only on corpus evidence per the criteria in the
+  phase plan, never on benchmark preference; no defaults were changed.
+
+Commands run:
+
+- `python evaluations/run_evaluations.py`
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py tests/test_phase9.py tests/test_phase10.py -q`
+- `python -m ruff check .`
+- `python -m ruff format --check .`
+- `python -m pytest -q`
+
+Exact results:
+
+- Evaluation runner: exit 0; 28 cases, 27 passed, 0 failed, 1 skipped
+  (live comparison, explicitly reported); citation/snapshot/bracket accuracy
+  1.0; unsupported-claim and validator-escape rates 0.0; mutation block rate
+  1.0 (11/11 attacks blocked); placement consistency 1.0; retrieval parity
+  1.0; prompt-injection resistance 1.0; fallback gate violations 0; one
+  same-model correlated-error case reported.
+- Required Phase 1-10 tests: 283 passed, 1 skipped.
+- Ruff check: all checks passed.
+- Ruff format check: 33 files already formatted.
+- Full pytest suite: 289 passed, 1 skipped.
+
+Known limitations:
+
+- Offline alias-quality numbers exercise the measurement machinery with
+  scripted fixtures; real model-quality data requires the gated live
+  comparison and a live vendor endpoint (and there is still no production
+  search/scraper adapter for full live web runs).
+- Completion-time metrics use the deterministic evaluation clock.
+- Correlated Analyst/Reviewer error cases are reported but not yet
+  quantified.
+
+Next exact task:
+
+- Post-MVP hardening based on evaluation results.
+
+Do not start:
+
+- Do not begin post-MVP hardening, production UI, new provider vendors, or
+  routing-default changes without explicit user direction.
+
 ## 2026-07-11 - Phase 9 Real Orchestration and Controlled Concurrency
 
 Current branch:

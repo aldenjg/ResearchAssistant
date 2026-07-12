@@ -1,0 +1,7 @@
+{
+  "case_id": "pipeline_transient_retry",
+  "kind": "pipeline",
+  "scenario": "transient_retry",
+  "expected_status": "released",
+  "description": "A transient extractor timeout is retried on the same alias before any fallback."
+}

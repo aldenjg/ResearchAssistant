@@ -1,0 +1,7 @@
+{
+  "case_id": "mutation_qualified_promotion",
+  "kind": "mutation",
+  "attack": "qualified_promotion",
+  "expected": "blocked",
+  "description": "Removing a qualification/warning template from limited evidence must block release."
+}
