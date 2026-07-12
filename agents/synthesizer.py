@@ -42,6 +42,9 @@ def build_synthesis_output(
     created_at: datetime,
     synthesizer_prompt_version: str = DEFAULT_SYNTHESIZER_PROMPT_VERSION,
     synthesizer_model_name: str = DEFAULT_SYNTHESIZER_MODEL_NAME,
+    supporting_heading: str = "Supporting Evidence",
+    opposing_heading: str = "Opposing Evidence",
+    limitations_heading: str = "Limitations",
 ) -> SynthesisOutput:
     typed_records = [
         _require_ledger_record(record, f"ledger_records[{index}]")
@@ -71,7 +74,7 @@ def build_synthesis_output(
         sections.append(
             SynthesisSection(
                 section_type=SectionType.SUPPORTING,
-                heading="Supporting Evidence",
+                heading=supporting_heading,
                 items=[_item_from_ledger(record) for record in supporting],
             )
         )
@@ -79,7 +82,7 @@ def build_synthesis_output(
         sections.append(
             SynthesisSection(
                 section_type=SectionType.OPPOSING,
-                heading="Opposing Evidence",
+                heading=opposing_heading,
                 items=[_item_from_ledger(record) for record in opposing],
             )
         )
@@ -87,7 +90,7 @@ def build_synthesis_output(
         sections.append(
             SynthesisSection(
                 section_type=SectionType.LIMITATIONS,
-                heading="Limitations",
+                heading=limitations_heading,
                 items=[_item_from_ledger(record) for record in limitations],
             )
         )

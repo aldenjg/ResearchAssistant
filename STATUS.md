@@ -1,5 +1,75 @@
 # Status
 
+## 2026-07-11 - Phase 9 Real Orchestration and Controlled Concurrency
+
+Status: Complete.
+
+Completed:
+
+- Added `run_live()` to `orchestrator.py`: a complete provider-backed run
+  through Planner, parallel supporting/opposing Researchers, trusted
+  snapshots, LLM extraction, deterministic post-extraction filtering,
+  Analyst, Statement Reviewer with one possible revision, Ledger admission,
+  Synthesizer, deterministic Renderer, and final Validator, ending in an
+  explicit released/blocked/failed/cancelled status. The Phase 6 fixture
+  pipeline is unchanged.
+- Researchers run under a `ThreadPoolExecutor` with at most two workers,
+  return typed batches, never open SQLite connections (verified by a
+  connection spy test), receive equal search limits, and fail explicitly per
+  side.
+- Added audited ordered model fallback over the Phase 8 routing config:
+  same-alias retry (limit 2) only for timeout/transient/malformed-output
+  failures; escalation only for objective recorded failures; extractor
+  escalates to `mimo-v2.5-pro` on repeated schema failure or exact-quote
+  failure and uses `deepseek-v4-flash` only as an availability fallback.
+  Semantic disagreement (for example an empty extraction) never switches
+  models.
+- Every attempt is persisted insert-only as a `StageModelAttempt` with stage,
+  work unit, alias, pinned snapshot when available, route position, attempt
+  number, status, failure/retry/escalation reasons, timestamps, latency, and
+  token metadata when available; history is preserved across restarts.
+- Added restart idempotency (persisted stages are reused; deterministic IDs
+  and read-and-compare persistence prevent duplicate snapshots and Ledger
+  records), cancellation between stages with clean CANCELLED state and
+  resumability, model/retrieval budgets with explicit budget failures, and
+  `inspect_run()` plus a CLI `inspect-run` command for partial-run
+  inspection.
+- Deterministic gates are unchanged and apply to all model output including
+  DeepSeek fallbacks; blocked releases carry no rendered hash; runs with no
+  admissible candidates or no approved statements fail explicitly.
+- Compatibility additions (documented, regression-tested):
+  `RunStatus.CANCELLED` and `StageModelAttempt` in `models.py`; insert-only
+  `stage_model_attempts` table (schema migration 2), `update_run`, and typed
+  per-run readers in `store.py`; optional heading parameters on
+  `build_synthesis_output`.
+- Added 30 deterministic offline Phase 9 tests with fake LLM/search/scraper
+  providers and a socket guard.
+
+Verification:
+
+- `python -m pytest tests/test_phase9.py -q`: 30 passed.
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py tests/test_phase9.py -q`:
+  261 passed, 1 skipped (optional live integration).
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 28 files already formatted.
+- `python -m pytest -q`: 267 passed, 1 skipped.
+
+Known limitations:
+
+- No production search/scraper vendor adapter exists yet, so live end-to-end
+  CLI runs against the web are not possible; `run_live` is exercised through
+  injected fake providers.
+- A crash between review persistence and Ledger insertion is recovered on
+  restart via a fresh analyst invocation for entailment, with all
+  deterministic admission gates still applied.
+- Availability-versus-quality failure classification relies on typed provider
+  exception classes.
+
+Next exact task:
+
+- Phase 10 evaluation and adversarial testing, only after explicit user
+  direction.
+
 ## 2026-07-11 - Phase 8 LLM Provider and Structured Prompts
 
 Status: Complete.

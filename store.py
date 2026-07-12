@@ -26,6 +26,7 @@ from models import (
     SearchQuery,
     SegmentOffset,
     SourceSnapshot,
+    StageModelAttempt,
     StatementDraft,
     StatementReviewResult,
     SynthesisItem,
@@ -339,6 +340,35 @@ def init_db(db_path: str) -> None:
                 status               TEXT NOT NULL,
                 invoked_at           TEXT NOT NULL
             );
+
+            -- stage model attempts (INSERT-ONLY audit of routed invocations) --
+            CREATE TABLE IF NOT EXISTS stage_model_attempts (
+                attempt_id             TEXT PRIMARY KEY,
+                run_id                 TEXT NOT NULL REFERENCES runs(run_id),
+                stage                  TEXT NOT NULL,
+                work_unit              TEXT NOT NULL,
+                model_alias            TEXT NOT NULL,
+                pinned_model_snapshot  TEXT,
+                route_position         INTEGER NOT NULL,
+                attempt_number         INTEGER NOT NULL,
+                status                 TEXT NOT NULL,
+                failure_reason         TEXT,
+                retry_reason           TEXT,
+                escalation_reason      TEXT,
+                started_at             TEXT NOT NULL,
+                completed_at           TEXT NOT NULL,
+                latency_ms             INTEGER NOT NULL,
+                input_tokens           INTEGER,
+                output_tokens          INTEGER
+            );
+
+            INSERT OR IGNORE INTO schema_migrations
+                (version, description, applied_at)
+                VALUES (
+                    2,
+                    'phase-9 stage model attempt audit table',
+                    '2026-07-11T00:00:00+00:00'
+                );
             """
         )
         conn.commit()
@@ -405,6 +435,32 @@ def read_run(db_path: str, run_id: UUID) -> RunManifest:
         if row is None:
             raise KeyError(f"run {run_id} not found")
         return _row_to_run(row)
+    finally:
+        conn.close()
+
+
+def update_run(db_path: str, manifest: RunManifest) -> None:
+    """Update a run's status, current stage, and timestamps.
+
+    The runs table is not insert-only; snapshots and Ledger records are.
+    """
+    conn = _connect(db_path)
+    try:
+        cursor = conn.execute(
+            """UPDATE runs
+               SET status = ?, current_stage = ?, updated_at = ?, completed_at = ?
+               WHERE run_id = ?""",
+            (
+                manifest.status.value,
+                manifest.current_stage.value,
+                _dt_to_iso(manifest.updated_at),
+                _dt_to_iso(manifest.completed_at) if manifest.completed_at else None,
+                str(manifest.run_id),
+            ),
+        )
+        if cursor.rowcount == 0:
+            raise KeyError(f"run {manifest.run_id} not found")
+        conn.commit()
     finally:
         conn.close()
 
@@ -1307,6 +1363,189 @@ def insert_model_invocation(db_path: str, record: ModelInvocationRecord) -> None
             ),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def insert_stage_model_attempt(db_path: str, attempt: StageModelAttempt) -> None:
+    conn = _connect(db_path)
+    try:
+        conn.execute(
+            """INSERT INTO stage_model_attempts
+               (attempt_id, run_id, stage, work_unit, model_alias,
+                pinned_model_snapshot, route_position, attempt_number, status,
+                failure_reason, retry_reason, escalation_reason, started_at,
+                completed_at, latency_ms, input_tokens, output_tokens)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(attempt.attempt_id),
+                str(attempt.run_id),
+                attempt.stage,
+                attempt.work_unit,
+                attempt.model_alias,
+                attempt.pinned_model_snapshot,
+                attempt.route_position,
+                attempt.attempt_number,
+                attempt.status,
+                attempt.failure_reason,
+                attempt.retry_reason,
+                attempt.escalation_reason,
+                _dt_to_iso(attempt.started_at),
+                _dt_to_iso(attempt.completed_at),
+                attempt.latency_ms,
+                attempt.input_tokens,
+                attempt.output_tokens,
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def read_stage_model_attempts_for_run(db_path: str, run_id: UUID) -> list[StageModelAttempt]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            """SELECT * FROM stage_model_attempts WHERE run_id = ?
+               ORDER BY started_at, attempt_id""",
+            (str(run_id),),
+        ).fetchall()
+        return [
+            StageModelAttempt(
+                run_id=UUID(r["run_id"]),
+                attempt_id=UUID(r["attempt_id"]),
+                stage=r["stage"],
+                work_unit=r["work_unit"],
+                model_alias=r["model_alias"],
+                pinned_model_snapshot=r["pinned_model_snapshot"],
+                route_position=r["route_position"],
+                attempt_number=r["attempt_number"],
+                status=r["status"],
+                failure_reason=r["failure_reason"],
+                retry_reason=r["retry_reason"],
+                escalation_reason=r["escalation_reason"],
+                started_at=_iso_to_dt(r["started_at"]),
+                completed_at=_iso_to_dt(r["completed_at"]),
+                latency_ms=r["latency_ms"],
+                input_tokens=r["input_tokens"],
+                output_tokens=r["output_tokens"],
+            )
+            for r in rows
+        ]
+    finally:
+        conn.close()
+
+
+def read_retrieval_attempts_for_run(db_path: str, run_id: UUID) -> list[RetrievalRecord]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            """SELECT * FROM retrieval_attempts WHERE run_id = ?
+               ORDER BY retrieval_attempt_id""",
+            (str(run_id),),
+        ).fetchall()
+        return [
+            RetrievalRecord(
+                run_id=UUID(r["run_id"]),
+                retrieval_attempt_id=UUID(r["retrieval_attempt_id"]),
+                query_id=UUID(r["query_id"]),
+                query_round=r["query_round"],
+                query_text=r["query_text"],
+                search_rank=r["search_rank"],
+                source_url=r["source_url"],
+                resolved_url=r["resolved_url"],
+                status=r["status"],
+                retrieved_at=_iso_to_dt(r["retrieved_at"]),
+            )
+            for r in rows
+        ]
+    finally:
+        conn.close()
+
+
+def read_snapshots_for_run(db_path: str, run_id: UUID) -> list[SourceSnapshot]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT snapshot_id FROM snapshots WHERE run_id = ? ORDER BY snapshot_id",
+            (str(run_id),),
+        ).fetchall()
+    finally:
+        conn.close()
+    return [read_snapshot(db_path, UUID(r["snapshot_id"])) for r in rows]
+
+
+def read_candidates_for_run(db_path: str, run_id: UUID) -> list[CandidateQuoteBlock]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM candidates WHERE run_id = ? ORDER BY quote_block_id",
+            (str(run_id),),
+        ).fetchall()
+        return [_row_to_candidate(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def read_analyst_decisions_for_run(db_path: str, run_id: UUID) -> list[ScoreDecision]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM analyst_decisions WHERE run_id = ? ORDER BY quote_block_id",
+            (str(run_id),),
+        ).fetchall()
+        return [_row_to_score_decision(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def read_statement_drafts_for_run(db_path: str, run_id: UUID) -> list[StatementDraft]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            """SELECT * FROM statement_drafts WHERE run_id = ?
+               ORDER BY drafted_at, statement_draft_id""",
+            (str(run_id),),
+        ).fetchall()
+        return [
+            StatementDraft(
+                run_id=UUID(r["run_id"]),
+                statement_draft_id=UUID(r["statement_draft_id"]),
+                quote_block_id=UUID(r["quote_block_id"]),
+                stance=r["stance"],
+                draft_statement=r["draft_statement"],
+                claim_fit=r["claim_fit"],
+                analyst_prompt_version=r["analyst_prompt_version"],
+                analyst_model_name=r["analyst_model_name"],
+                drafted_at=_iso_to_dt(r["drafted_at"]),
+            )
+            for r in rows
+        ]
+    finally:
+        conn.close()
+
+
+def read_statement_reviews_for_run(db_path: str, run_id: UUID) -> list[StatementReviewResult]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            """SELECT * FROM statement_review_attempts WHERE run_id = ?
+               ORDER BY reviewed_at, statement_draft_id""",
+            (str(run_id),),
+        ).fetchall()
+        return [_row_to_review_result(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def read_ledger_records_for_run(db_path: str, run_id: UUID) -> list[LedgerRecord]:
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM ledger_records WHERE run_id = ? ORDER BY ledger_claim_id",
+            (str(run_id),),
+        ).fetchall()
+        return [_row_to_ledger_record(r) for r in rows]
     finally:
         conn.close()
 

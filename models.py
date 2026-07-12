@@ -29,6 +29,7 @@ class RunStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class Stage(StrEnum):
@@ -545,6 +546,46 @@ class RunManifest(StrictModel):
     def validate_completion(self) -> RunManifest:
         if self.status is RunStatus.COMPLETED and self.completed_at is None:
             raise ValueError("completed runs require completed_at")
+        return self
+
+
+class StageModelAttempt(StrictModel):
+    """One audited model attempt inside a routed stage invocation.
+
+    Persisted insert-only so model route and attempt history survive restarts.
+    ``route_position`` is 0 for the primary alias, 1 for the backup, and 2 for
+    the third-line availability fallback.
+    """
+
+    run_id: UUID
+    attempt_id: UUID
+    stage: NonEmptyStr
+    work_unit: NonEmptyStr
+    model_alias: NonEmptyStr
+    pinned_model_snapshot: NonEmptyStr | None = None
+    route_position: Annotated[int, Field(ge=0, le=2)]
+    attempt_number: PositiveInt
+    status: Literal["succeeded", "failed"]
+    failure_reason: NonEmptyStr | None = None
+    retry_reason: NonEmptyStr | None = None
+    escalation_reason: NonEmptyStr | None = None
+    started_at: datetime
+    completed_at: datetime
+    latency_ms: NonNegativeInt
+    input_tokens: NonNegativeInt | None = None
+    output_tokens: NonNegativeInt | None = None
+
+    _started_at_is_aware = field_validator("started_at")(_validate_aware_datetime)
+    _completed_at_is_aware = field_validator("completed_at")(_validate_aware_datetime)
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> StageModelAttempt:
+        if self.status == "failed" and self.failure_reason is None:
+            raise ValueError("failed stage model attempts require a failure reason")
+        if self.status == "succeeded" and self.failure_reason is not None:
+            raise ValueError("succeeded stage model attempts cannot carry a failure reason")
+        if self.route_position == 0 and self.escalation_reason is not None:
+            raise ValueError("primary-route attempts cannot carry an escalation reason")
         return self
 
 

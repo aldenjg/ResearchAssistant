@@ -1,5 +1,86 @@
 # Handoff
 
+## 2026-07-11 - Phase 9 Real Orchestration and Controlled Concurrency
+
+Current branch:
+
+- `master`
+
+Latest completed phase:
+
+- Phase 9 Real Orchestration and Controlled Concurrency.
+- Phase 10 has not started.
+
+Files changed:
+
+- `orchestrator.py` (live orchestration section added; fixture pipeline
+  unchanged)
+- `cli.py` (`inspect-run` command)
+- `models.py` (`RunStatus.CANCELLED`, `StageModelAttempt`)
+- `store.py` (`stage_model_attempts` table + migration 2, `update_run`,
+  attempt insert/read, typed per-run readers)
+- `agents/synthesizer.py` (optional heading parameters, defaults unchanged)
+- `tests/test_phase9.py` (new, 30 tests)
+- `.agent/plans/phase-09-orchestration.md`
+- `STATUS.md`
+- `HANDOFF.md`
+
+Decisions made:
+
+- Keep researcher concurrency at two synchronous ThreadPoolExecutor workers
+  returning typed batches; the coordinator persists results after both
+  finish, so no SQLite connection is ever shared with a worker thread.
+- Retry the current alias only for timeout/transient/malformed-output
+  failures; escalate only on objective recorded failures; treat the
+  extractor's DeepSeek third line as availability-only; never switch models
+  on semantic disagreement.
+- Persist model-attempt audit records insert-only so route and attempt
+  history is complete and restart-safe; reload the attempt count into the
+  budget on resume.
+- Fail runs explicitly when retrieval budgets cannot cover the full 18
+  balanced attempts, when extraction yields no admissible candidates, or when
+  no statement wins Reviewer approval — never release an empty brief and
+  never run one side at reduced depth.
+- Recover the rare review-persisted-but-Ledger-missing crash window on
+  restart with a fresh analyst invocation for entailment; all deterministic
+  admission gates still apply.
+- Make the smallest documented compatibility additions to `models.py` and
+  `store.py` with regression tests instead of redesigning completed phases.
+
+Commands run:
+
+- `python -m pytest tests/test_phase9.py -q`
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py tests/test_phase9.py -q`
+- `python -m ruff check .`
+- `python -m ruff format --check .`
+- `python -m pytest -q`
+
+Exact results:
+
+- Phase 9 focused tests: 30 passed.
+- Required Phase 1-9 tests: 261 passed, 1 skipped.
+- Ruff check: all checks passed.
+- Ruff format check: 28 files already formatted.
+- Full pytest suite: 267 passed, 1 skipped.
+
+Known limitations:
+
+- No live search/scraper vendor adapter exists; end-to-end web runs await a
+  vendor integration phase. All Phase 9 verification uses injected fakes.
+- Failure classification (availability vs quality) depends on providers
+  raising the typed exception classes from Phase 7B/8 contracts.
+- Analyst/Reviewer correlated-error measurement is deferred to Phase 10.
+
+Next exact task:
+
+- Phase 10 evaluation and adversarial testing.
+
+Do not start:
+
+- Do not begin Phase 10 without explicit user direction.
+- Do not add evaluation corpora, metrics, production UI, or new provider
+  vendors as Phase 9 follow-up.
+
 ## 2026-07-11 - Phase 8 LLM Provider and Structured Prompts
 
 Current branch:
