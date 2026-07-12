@@ -1,5 +1,78 @@
 # Status
 
+## 2026-07-11 - Phase 8 LLM Provider and Structured Prompts
+
+Status: Complete.
+
+Completed:
+
+- Added `providers/llm.py` with a runtime-checkable synchronous `LLMProvider`
+  Protocol, strict typed `ProviderRequest`/`ProviderResponse` artifacts, and
+  explicit provider errors (permanent, timeout, transient, capability).
+- Added typed stage invocation (`invoke_stage`) recording prompt version and
+  SHA-256, model alias, pinned model snapshot when available, input artifact
+  IDs, start/end timestamps, per-attempt success/failure/retry metadata,
+  applied temperature, capability notes, and token usage when available.
+- Added Pydantic rejection of invalid model responses: raw non-Pydantic
+  returns, non-JSON text, wrong schemas, and extra fields all fail the attempt
+  and never become successful artifacts.
+- Added versioned prompt files for planner/extractor/analyst/reviewer/
+  synthesizer with `Prompt version:` declarations, loaded and hashed by
+  `load_prompt_template()`.
+- Added validated per-stage model routing with exactly one primary and up to
+  two ordered fallbacks, an approved alias registry, and MiMo-first defaults
+  (planner/analyst/synthesizer: mimo-v2.5-pro first; extractor/reviewer:
+  mimo-v2.5 first; DeepSeek aliases third-line only).
+- Added typed per-stage generation settings with recommended temperature
+  defaults (0.2/0.0/0.1/0.0/0.15) and explicit unsupported-parameter handling
+  (`error` or `omit_and_record`; never silent).
+- Added untrusted-source-text labeling with explicit markers and notice;
+  extractor/analyst stage inputs reject unlabeled source text.
+- Stage output schemas contain no identifier fields; the model cannot create
+  evidence IDs, choose placement or downstream behavior, or approve its own
+  claims. IDs are assigned deterministically after validation.
+- Implemented the previously empty `agents/planner.py`: provider-backed
+  planning with system-supplied claim text, deterministic uuid5 query and
+  ambiguity IDs, fixed strategies by round, and required query exclusions.
+- Added a stdlib-only optional `OpenAICompatibleLLMProvider` (urllib, key from
+  `OPENAI_API_KEY` at call time, never hardcoded) for explicitly enabled
+  integration runs.
+- Added 28 offline Phase 8 tests (network blocked via socket guard) plus one
+  optional live integration test skipped unless `RUN_LLM_INTEGRATION_TESTS=1`.
+- Updated `.env.example` with `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
+  `RUN_LLM_INTEGRATION_TESTS`.
+- No runtime model failover was implemented; ordered fallbacks are validated
+  configuration for Phase 9. No new dependency was added.
+
+Verification:
+
+- `python -m pytest tests/test_phase8.py -q`: 28 passed, 1 skipped.
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py -q`:
+  231 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 27 files already formatted.
+
+Environment notes:
+
+- Bare `python` (3.11) is available on this Windows machine; `ruff` from the
+  declared dev extras was installed into it so the exact verification
+  commands run.
+- The Windows checkout had CRLF line endings from `core.autocrlf=true`;
+  repo-local Git config was set to `core.autocrlf=input` and the working tree
+  normalized back to LF with no content change.
+
+Known limitations:
+
+- Pinned snapshot identifiers in the alias registry are configuration strings
+  and must be confirmed against the live vendor catalog before live use.
+- Prompt quality against live models is unmeasured until Phase 10.
+- The live adapter supports OpenAI-compatible chat-completions endpoints only.
+
+Next exact task:
+
+- Phase 9 real orchestration and controlled concurrency, only after explicit
+  user direction.
+
 ## 2026-07-10 - Phase 7B Search and Scraping Provider Interfaces
 
 Status: Complete.

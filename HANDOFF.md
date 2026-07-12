@@ -1,5 +1,86 @@
 # Handoff
 
+## 2026-07-11 - Phase 8 LLM Provider and Structured Prompts
+
+Current branch:
+
+- `master`
+
+Latest completed phase:
+
+- Phase 8 LLM Provider and Structured Prompts.
+- Phase 9 has not started.
+
+Files changed:
+
+- `providers/llm.py` (new)
+- `prompts/planner.md`, `prompts/extractor.md`, `prompts/analyst.md`,
+  `prompts/reviewer.md`, `prompts/synthesizer.md` (new)
+- `agents/planner.py` (implemented; was an empty placeholder)
+- `tests/test_phase8.py` (new)
+- `.env.example`
+- `.agent/plans/phase-08-llm-integration.md`
+- `STATUS.md`
+- `HANDOFF.md`
+
+Decisions made:
+
+- Keep the LLM vendor behind a runtime-checkable synchronous Protocol with
+  strict Pydantic request/response artifacts; strings cross the boundary,
+  typed models exist only on our side.
+- Validate all model output with strict Pydantic types that contain no
+  identifier fields; IDs are assigned deterministically after validation.
+- Enforce routing shape in the model layer: one primary alias plus up to two
+  ordered fallbacks, all from an approved alias registry with pinned
+  snapshots where available (deepseek-v4-flash intentionally has none to
+  exercise the unpinned path).
+- MiMo-first defaults: Pro for planner/analyst/synthesizer, normal for
+  extractor/reviewer, DeepSeek third-line only; DeepSeek output never
+  bypasses deterministic or Reviewer gates.
+- Handle unsupported provider parameters explicitly via
+  `GenerationSettings.on_unsupported` (`error` default, `omit_and_record`
+  alternative that records capability notes).
+- Retry only the same alias for timeout/transient/invalid-output failures;
+  `StageInvocationResult` rejects cross-alias attempt histories, so Phase 8
+  cannot fail over.
+- Use a stdlib-only urllib adapter for the optional live path; no SDK or HTTP
+  dependency was added; API key comes from `OPENAI_API_KEY` at call time.
+- Normalize the Windows checkout to LF (`core.autocrlf=input`) and install
+  `ruff` from the declared dev extras so the exact verification commands run.
+
+Commands run:
+
+- `python -m pytest tests/test_phase8.py -q`
+- `python -m pytest tests/test_phase1.py tests/test_phase2.py tests/test_phase3.py tests/test_phase4.py tests/test_phase5.py tests/test_phase6.py tests/test_phase7.py tests/test_phase8.py -q`
+- `python -m ruff check .`
+- `python -m ruff format --check .`
+
+Exact results:
+
+- Phase 8 focused tests: 28 passed, 1 skipped (optional live integration).
+- Required Phase 1-8 tests: 231 passed, 1 skipped.
+- Ruff check: all checks passed.
+- Ruff format check: 27 files already formatted.
+
+Known limitations:
+
+- Pinned snapshot identifiers are configuration strings pending confirmation
+  against the live vendor catalog.
+- The live adapter targets OpenAI-compatible chat-completions endpoints only
+  and is exercised only when `RUN_LLM_INTEGRATION_TESTS=1`.
+- No orchestration, runtime fallback execution, concurrency, budgets, or
+  restart behavior exists yet; those are Phase 9.
+
+Next exact task:
+
+- Phase 9 real orchestration and controlled concurrency.
+
+Do not start:
+
+- Do not begin Phase 9 without explicit user direction.
+- Do not add evaluation corpora, Phase 10 metrics, network-dependent normal
+  tests, or hidden background tasks as Phase 8 follow-up.
+
 ## 2026-07-10 - Phase 7B Search and Scraping Provider Interfaces
 
 Current branch:
