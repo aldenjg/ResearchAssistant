@@ -1,5 +1,61 @@
 # Handoff
 
+## 2026-07-17 - Post-MVP Live Web Integration (Phase 11)
+
+Current branch:
+
+- `master`
+
+Latest completed work:
+
+- Post-MVP live web integration on top of the completed Phase 0-10 roadmap.
+
+Files changed:
+
+- `providers/search.py` (Brave/Serper adapters, vendor selection, pre-flight
+  config helper)
+- `providers/scraper.py` (`UrllibScraperProvider`, HTML text extraction)
+- `providers/llm.py` (live model map from env, pre-flight config helper)
+- `cli.py` (`run` command)
+- `tests/test_live_providers.py` (new)
+- `.env.example`, `README.md`
+- `.agent/plans/phase-11-live-web-integration.md`, `.agent/PLANS.md`
+- `STATUS.md`, `HANDOFF.md`
+
+Decisions made:
+
+- Stdlib-only adapters (urllib + html.parser); no dependency was added.
+- Environment reads stay in provider modules so the Phase 6 offline-guard
+  source scan of `cli.py`/`orchestrator.py` passes unmodified.
+- Live adapters implement the existing Phase 7B protocols, so every Phase 9
+  gate, retry/fallback policy, budget, and restart behavior applies to live
+  runs unchanged.
+- `cli._build_live_providers()` is the documented test seam for driving the
+  CLI live path with fakes.
+
+Commands run and exact results:
+
+- `python -m pytest tests/test_live_providers.py -q`: 17 passed.
+- `python -m pytest -q`: 306 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 34 files already formatted.
+- Live scraper smoke test (example.com, Wikipedia): passed.
+
+Known limitations:
+
+- End-to-end live runs need `OPENAI_API_KEY` plus a search key
+  (`BRAVE_API_KEY` or `SERPER_API_KEY`); a full live run with real LLM spend
+  has not yet been executed.
+- Endpoint model names default to `gpt-4.1`/`gpt-4.1-mini`; override via
+  `LLM_MODEL_MAP` for other endpoints.
+- No JavaScript rendering or robots.txt handling in the scraper.
+
+Next exact task:
+
+- Configure a search API key, run the first real claim with
+  `python cli.py run "<claim>"`, and tune prompts/routing from the Phase 10
+  evaluation results.
+
 ## 2026-07-12 - Phase 10 Evaluation and Adversarial Testing
 
 Current branch:

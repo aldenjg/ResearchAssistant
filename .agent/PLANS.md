@@ -4,7 +4,14 @@ Canonical phase plans live in `.agent/plans/`.
 
 The requested `.agents/PLANS/` path is a compatibility mirror only when writable. It must not become a second source of truth.
 
-## Current Project State After Phase 7A
+## Current Project State
+
+The full Phase 0-10 roadmap is complete, plus the post-MVP live web
+integration described in `.agent/plans/phase-11-live-web-integration.md`.
+See `STATUS.md` and `HANDOFF.md` for the latest verified state. The section
+below is retained as a historical point-in-time record.
+
+## Historical Project State After Phase 7A
 
 Phases 0 through 6 and Phase 7A are complete. Phase 7B has not started and should begin only after explicit user direction.
 
@@ -311,3 +318,24 @@ Explicitly out of scope:
 - Live network dependency for normal evaluations
 
 Completion signal: Evaluations run offline. Required metrics are reported, including citation accuracy, snapshot integrity, bracket accuracy, unsupported-claim rate, validator escape rate, placement consistency, score separation, Reviewer rejection rate, Analyst rejection rate, retrieval parity, mutation attack block rate, and completion time. Remaining MVP risks are documented.
+
+## Phase 11 (post-MVP): Live Web Integration
+
+Purpose: Make the completed system usable against the real web with live search/scraper adapters behind the Phase 7B protocols, live model-alias mapping, and a CLI `run` command.
+
+Main files expected:
+
+- `providers/search.py` (Brave/Serper adapters)
+- `providers/scraper.py` (`UrllibScraperProvider`)
+- `providers/llm.py` (live model map)
+- `cli.py` (`run` command)
+- `tests/test_live_providers.py`
+- `.agent/plans/phase-11-live-web-integration.md`
+
+Explicitly out of scope:
+
+- New dependencies
+- JavaScript rendering
+- Changes to deterministic gates, routing defaults, or earlier tests
+
+Completion signal: Offline adapter tests pass; the Phase 6 offline-guard test passes unmodified; a live scraper smoke test succeeds; `python cli.py run "<claim>"` drives the Phase 9 orchestrator end-to-end once `OPENAI_API_KEY` and a search API key are configured.

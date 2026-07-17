@@ -1,5 +1,65 @@
 # Status
 
+## 2026-07-17 - Post-MVP Live Web Integration (Phase 11)
+
+Status: Complete. The system now runs end-to-end against the real web.
+
+Completed:
+
+- Added stdlib-only live search adapters (`BraveSearchProvider`,
+  `SerperSearchProvider`) behind the existing Phase 7B `SearchProvider`
+  protocol, selected via `SEARCH_PROVIDER` (default brave), with API keys
+  read from the environment at call time.
+- Added the stdlib-only `UrllibScraperProvider`: timeout-aware fetch,
+  redirect-resolved URLs, 2 MB download cap, charset-aware decoding,
+  HTML-to-text extraction that skips scripts/styles/navigation, textual
+  passthrough for plain text/XML, and explicit unsupported reporting for
+  non-textual content types.
+- Added `DEFAULT_LIVE_MODEL_MAP` plus `model_map_from_env()` so the MiMo
+  routing aliases map to real endpoint models (defaults `gpt-4.1` /
+  `gpt-4.1-mini`, overridable via `LLM_MODEL_MAP` JSON validated against the
+  approved alias registry).
+- Added `python cli.py run "<claim>"` driving the Phase 9 orchestrator with
+  live providers: pre-flight configuration checks (exit 2 with the exact
+  missing variable), released/blocked results exit 0, failed/cancelled exit
+  1 with a `--run-id` resume hint.
+- Kept `cli.py` free of environment reads by placing pre-flight helpers in
+  the provider modules, so the Phase 6 offline-guard test passes unmodified;
+  no earlier test was changed or weakened.
+- Added 17 offline tests (`tests/test_live_providers.py`) covering both
+  search adapters (parsing, rank order, limits, headers, missing keys, HTTP
+  429/timeout/invalid-JSON errors, vendor selection), the scraper (HTML
+  extraction, resolved URLs, charset handling, PDF/non-textual reporting,
+  timeout and HTTP errors), model-map defaults/overrides/validation, and the
+  CLI run command through an injected-provider seam.
+- Updated `.env.example` and `README.md` with live-run setup instructions.
+
+Verification:
+
+- `python -m pytest tests/test_live_providers.py -q`: 17 passed.
+- `python -m pytest -q`: 306 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 34 files already formatted.
+- Live scraper smoke test against https://example.com and a Wikipedia
+  article: passed (text/html, visible text extracted).
+
+Known limitations:
+
+- Live runs require a search API key (Brave or Serper) in addition to
+  `OPENAI_API_KEY`; end-to-end live verification with LLM calls awaits those
+  keys and was not run to avoid unrequested spend.
+- Default endpoint model names must exist on the configured endpoint;
+  override with `LLM_MODEL_MAP` if needed.
+- The scraper does not execute JavaScript or consult robots.txt; JS-heavy
+  pages yield thin text that downstream gates filter out.
+- The deterministic verbatim-quote gates are strict: early live runs may
+  reject many candidates or fail with "no approved statements" by design.
+
+Next exact task:
+
+- Run a first real claim end-to-end once a search API key is configured,
+  then tune prompts/routing using the Phase 10 evaluation framework.
+
 ## 2026-07-12 - Phase 10 Evaluation and Adversarial Testing
 
 Status: Complete. The Phase 0-10 MVP roadmap is finished.

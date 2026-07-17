@@ -679,6 +679,57 @@ def live_integration_enabled() -> bool:
     return os.environ.get(LIVE_INTEGRATION_ENV_VAR) == "1"
 
 
+MODEL_MAP_ENV_VAR = "LLM_MODEL_MAP"
+
+
+def missing_llm_configuration(api_key_env: str = "OPENAI_API_KEY") -> list[str]:
+    """Report missing live LLM configuration without exposing secret values."""
+    if not os.environ.get(api_key_env):
+        return [f"{api_key_env} is not set (LLM provider)"]
+    return []
+
+
+# Default mapping from routing aliases to concrete endpoint model names for
+# live runs against an OpenAI-compatible endpoint. Override with the
+# LLM_MODEL_MAP environment variable (JSON object of alias -> model name)
+# when your endpoint serves different models; the routing tier structure
+# (pro-tier primary vs cheaper repeated-work tier) is preserved by default.
+DEFAULT_LIVE_MODEL_MAP: Mapping[str, str] = {
+    "mimo-v2.5-pro": "gpt-4.1",
+    "mimo-v2.5": "gpt-4.1-mini",
+    "deepseek-v4-pro": "gpt-4.1",
+    "deepseek-v4-flash": "gpt-4.1-mini",
+}
+
+
+def model_map_from_env() -> dict[str, str]:
+    """Resolve the alias-to-model mapping for live runs.
+
+    Reads ``LLM_MODEL_MAP`` (a JSON object mapping known routing aliases to
+    endpoint model names); unknown aliases or malformed JSON fail loudly.
+    Aliases not overridden keep their defaults.
+    """
+    mapping = dict(DEFAULT_LIVE_MODEL_MAP)
+    raw = os.environ.get(MODEL_MAP_ENV_VAR)
+    if not raw:
+        return mapping
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{MODEL_MAP_ENV_VAR} is not valid JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{MODEL_MAP_ENV_VAR} must be a JSON object of alias -> model name")
+    for alias, model_name in parsed.items():
+        if alias not in KNOWN_MODEL_ALIASES:
+            raise UnknownModelAliasError(
+                f"{MODEL_MAP_ENV_VAR} contains unknown model alias: {alias!r}"
+            )
+        if not isinstance(model_name, str) or not model_name:
+            raise ValueError(f"{MODEL_MAP_ENV_VAR} model name for {alias!r} must be non-empty")
+        mapping[alias] = model_name
+    return mapping
+
+
 class OpenAICompatibleLLMProvider:
     """Minimal stdlib-only adapter for OpenAI-compatible chat endpoints.
 
