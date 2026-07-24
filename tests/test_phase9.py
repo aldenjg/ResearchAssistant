@@ -386,6 +386,38 @@ def test_equal_retrieval_budgets_for_both_sides(tmp_path: Path) -> None:
     assert counts == {"supporting": 9, "opposing": 9}
 
 
+def test_same_url_in_both_stances_deduplicates_snapshot(tmp_path: Path) -> None:
+    """Regression: live search returns overlapping URLs across stances.
+
+    Each worker deduplicates only within its own stance, so both produce a
+    snapshot with the same deterministic ID for the shared URL. The
+    coordinator must keep one copy instead of failing on the strict
+    persistence equality check (first observed on the first live run).
+    """
+
+    class OverlappingSearch(FakeSearch):
+        def search(self, request: object) -> SearchResponse:
+            response = super().search(request)
+            text = request.query_text
+            if re.search(r"\bq1\b", text):
+                shared = SearchResult(original_url="https://example.com/shared/article")
+                return SearchResponse(results=[shared, *response.results[1:]])
+            return response
+
+    result, db_path, _ = execute(tmp_path, search=OverlappingSearch())
+    assert result.status == "released"
+    inspection = inspect_run(db_path, result.run_id)
+    # 18 intended attempts are all recorded, but the shared document is
+    # snapshotted exactly once.
+    assert inspection.retrieval_count == 18
+    with sqlite3.connect(db_path) as conn:
+        shared_rows = conn.execute(
+            "SELECT COUNT(*) FROM snapshots WHERE source_url = ?",
+            ("https://example.com/shared/article",),
+        ).fetchone()[0]
+    assert shared_rows == 1
+
+
 def test_no_shared_sqlite_connection_across_workers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

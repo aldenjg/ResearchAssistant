@@ -1505,6 +1505,13 @@ def _stage_retrieval(
 
     retrievals: list[RetrievalRecord] = []
     snapshots: list[SourceSnapshot] = []
+    # The two workers deduplicate within their own stance only; the same URL
+    # can legitimately appear in both stances' search results. The snapshot
+    # ID is derived from run, resolved URL, and content hash, so a repeated
+    # ID across batches with identical content is the same source document:
+    # keep the first snapshot and skip the duplicate. Differing content under
+    # one ID is a hard integrity failure.
+    seen_snapshots: dict[UUID, SourceSnapshot] = {}
     for batch in (supporting_batch, opposing_batch):
         for outcome in batch.outcomes:
             record = outcome.retrieval
@@ -1520,6 +1527,16 @@ def _stage_retrieval(
             retrievals.append(record)
         for snapshot in batch.snapshots:
             validate_snapshot_integrity(snapshot)
+            existing = seen_snapshots.get(snapshot.snapshot_id)
+            if existing is not None:
+                if (
+                    existing.snapshot_sha256 != snapshot.snapshot_sha256
+                    or existing.normalized_text != snapshot.normalized_text
+                ):
+                    raise OrchestratorError(
+                        "snapshot ID collision with differing content between researchers"
+                    )
+                continue  # cross-stance duplicate of the identical source document
             _persist_live(
                 ctx.db_path,
                 snapshot,
@@ -1527,6 +1544,7 @@ def _stage_retrieval(
                 lambda snapshot=snapshot: read_snapshot(ctx.db_path, snapshot.snapshot_id),
                 "snapshot",
             )
+            seen_snapshots[snapshot.snapshot_id] = snapshot
             snapshots.append(snapshot)
     return retrievals, snapshots
 
