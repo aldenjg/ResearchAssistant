@@ -16,14 +16,20 @@ Current status: the full Phase 0-10 roadmap is complete (see `.agent/PLANS.md`),
 python cli.py run "Your exact claim text here."
 ```
 
-The run ends in an explicit state: `released` prints the final brief and its hash; `blocked` prints the validator errors; `failed` prints the reason and a resume command (`--run-id`) that continues from persisted artifacts without duplicating work. Inspect any run with `python cli.py inspect-run live_runs.sqlite3 <run_id>`.
+The run ends in an explicit state: `released` prints the final brief and its hash; `blocked` prints the validator errors; `failed` prints the reason and a resume command (`--run-id`) that continues from persisted artifacts without duplicating work. Inspect any run with `python cli.py inspect-run live_runs.sqlite3 <run_id>`, or browse every persisted run in the local frontend:
+
+```bash
+streamlit run frontend/streamlit_app.py
+```
+
+The frontend is read-only over run databases: it shows the release verdict, evidence funnel, Ledger records with their two-axis scores, provenance, validator errors, and audited model attempts, and verifies a released brief's hash by re-rendering it from persisted artifacts. Runs are started from the CLI only. See `frontend/README.md`.
 
 ## Offline usage
 
 ```bash
 python cli.py run-fixture tests/fixtures/basic_valid_run   # deterministic fixture pipeline
 python evaluations/run_evaluations.py                      # offline evaluation + adversarial corpus
-streamlit run frontend/streamlit_app.py                    # minimal local fixture frontend
+streamlit run frontend/streamlit_app.py                    # local run browser + fixture frontend
 ```
 
 ## Start here (for contributors and assistants)

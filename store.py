@@ -439,6 +439,23 @@ def read_run(db_path: str, run_id: UUID) -> RunManifest:
         conn.close()
 
 
+def read_run_manifests(db_path: str) -> list[RunManifest]:
+    """Return every persisted run manifest, newest first.
+
+    Read-only listing for inspection surfaces.  The database must already be
+    initialised; an uninitialised path raises rather than returning an empty
+    list, so a caller can never mistake a missing schema for zero runs.
+    """
+    conn = _connect(db_path)
+    try:
+        rows = conn.execute("SELECT * FROM runs ORDER BY created_at DESC").fetchall()
+    except sqlite3.OperationalError as exc:
+        raise KeyError(f"database is not initialised: {db_path}") from exc
+    finally:
+        conn.close()
+    return [_row_to_run(row) for row in rows]
+
+
 def update_run(db_path: str, manifest: RunManifest) -> None:
     """Update a run's status, current stage, and timestamps.
 

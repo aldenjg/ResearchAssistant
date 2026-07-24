@@ -16,6 +16,9 @@ from orchestrator import FixturePipelineResult, run_fixture_pipeline  # noqa: E4
 
 REPO_ROOT = PROJECT_ROOT
 DEFAULT_FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
+DEFAULT_DB_PATH = "live_runs.sqlite3"
+RUNS_PAGE = "Runs"
+FIXTURE_PAGE = "Fixture pipeline"
 REQUIRED_FIXTURE_FILES = (
     "raw_claim.txt",
     "planner.json",
@@ -186,28 +189,31 @@ def summarize_fixture_result(result: FixturePipelineResult) -> FrontendRunSummar
 
 
 def main() -> None:
+    """Entry point: a two-page shell over the pipeline's own artifacts."""
     st = _load_streamlit()
-    st.set_page_config(page_title="Fixture Pipeline", layout="wide")
-    st.title("Fixture Pipeline")
 
-    fixture_options = discover_fixture_runs()
-    if not fixture_options:
-        st.warning("No fixture runs found.")
+    from frontend import theme
+    from frontend.views import fixture_view, runs_view
+
+    theme.apply_theme("Debate Research Agent System")
+
+    with st.sidebar:
+        theme.write(theme.brand())
+        page = st.radio(
+            "Page",
+            (RUNS_PAGE, FIXTURE_PAGE),
+            label_visibility="collapsed",
+        )
+        db_path = st.text_input("Run database", value=DEFAULT_DB_PATH)
+        theme.write(
+            '<div class="empty-hint">Read-only. Runs are started from the CLI:'
+            "<br/>python cli.py run &quot;claim&quot;</div>"
+        )
+
+    if page == RUNS_PAGE:
+        runs_view.render(db_path.strip() or DEFAULT_DB_PATH)
         return
-
-    selected = st.selectbox(
-        "Fixture run",
-        fixture_options,
-        format_func=lambda option: option.name,
-    )
-    if st.button("Run fixture pipeline", type="primary"):
-        with st.spinner("Running fixture pipeline..."):
-            summary = run_fixture_for_frontend(selected.path)
-        st.session_state["phase7a_summary"] = summary.model_dump(mode="json")
-
-    payload = st.session_state.get("phase7a_summary")
-    if payload is not None:
-        _render_summary(st, FrontendRunSummary.model_validate(payload))
+    fixture_view.render()
 
 
 def _is_fixture_run_dir(path: Path) -> bool:
@@ -230,53 +236,6 @@ def _load_streamlit() -> object:
             "`streamlit run frontend/streamlit_app.py` from the repository root."
         ) from exc
     return st
-
-
-def _render_summary(st: object, summary: FrontendRunSummary) -> None:
-    status_message = "Released" if summary.status == "released" else "Blocked"
-    if summary.status == "released":
-        st.success(status_message)
-    else:
-        st.error(status_message)
-
-    status_col, hash_col, run_col = st.columns(3)
-    status_col.metric("Status", summary.status)
-    hash_col.metric("Rendered hash", summary.validation.rendered_brief_hash or "None")
-    run_col.metric("Run ID", summary.run_id)
-
-    st.subheader("Claim")
-    st.write(summary.raw_claim)
-
-    if summary.final_brief is not None:
-        st.subheader("Final Brief")
-        st.text_area("Brief text", summary.final_brief, height=360, disabled=True)
-    if summary.block_reason is not None:
-        st.subheader("Block Reason")
-        st.write(summary.block_reason)
-
-    st.subheader("Validation")
-    if summary.validation.errors:
-        st.dataframe(
-            [error.model_dump(mode="json") for error in summary.validation.errors],
-            hide_index=True,
-            use_container_width=True,
-        )
-    st.json(summary.validation.model_dump(mode="json"))
-
-    st.subheader("Metadata")
-    st.json(
-        {
-            "counts": summary.counts.model_dump(mode="json"),
-            "metadata": summary.metadata.model_dump(mode="json"),
-        }
-    )
-
-    st.subheader("Audit Trail")
-    st.dataframe(
-        [entry.model_dump(mode="json") for entry in summary.audit_trail],
-        hide_index=True,
-        use_container_width=True,
-    )
 
 
 if __name__ == "__main__":

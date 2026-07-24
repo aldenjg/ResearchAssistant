@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -65,6 +65,7 @@ from store import (
     read_provisional_extractions,
     read_retrieval_attempt,
     read_run,
+    read_run_manifests,
     read_snapshot,
     read_statement_draft,
     read_statement_review,
@@ -603,6 +604,43 @@ class TestRoundTrips:
         insert_model_invocation(db_path, inv)
         loaded = read_model_invocation(db_path, inv.invocation_id)
         assert loaded == inv
+
+
+# ---------------------------------------------------------------------------
+# Test: run listing
+# ---------------------------------------------------------------------------
+
+
+class TestRunListing:
+    def test_returns_runs_newest_first(self, db_path: str) -> None:
+        older = _make_run()
+        newer = RunManifest(
+            run_id=uuid4(),
+            status=RunStatus.RUNNING,
+            raw_claim="Newer claim",
+            current_stage=Stage.EVIDENCE_ANALYST,
+            created_at=_NOW + timedelta(hours=1),
+            updated_at=_NOW + timedelta(hours=1),
+        )
+        insert_run(db_path, older)
+        insert_run(db_path, newer)
+
+        listed = read_run_manifests(db_path)
+
+        assert [manifest.run_id for manifest in listed] == [newer.run_id, older.run_id]
+        assert listed[1] == older
+
+    def test_empty_database_lists_no_runs(self, db_path: str) -> None:
+        assert read_run_manifests(db_path) == []
+
+    def test_uninitialised_database_raises(self) -> None:
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        try:
+            with pytest.raises(KeyError, match="not initialised"):
+                read_run_manifests(path)
+        finally:
+            os.unlink(path)
 
 
 # ---------------------------------------------------------------------------

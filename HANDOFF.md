@@ -1,5 +1,76 @@
 # Handoff
 
+## 2026-07-24 - Post-MVP Frontend Refresh and Read-Only Run Browser (Phase 12)
+
+Current branch:
+
+- `master`
+
+Latest completed work:
+
+- A designed local frontend over the existing system: a read-only browser for
+  persisted runs plus a restyled fixture page. No pipeline behavior changed.
+
+Files changed:
+
+- `store.py` (added `read_run_manifests()`, read-only; no schema change)
+- `frontend/run_reader.py` (new), `frontend/theme.py` (new),
+  `frontend/assets/app.css` (new), `frontend/views/__init__.py` (new),
+  `frontend/views/runs_view.py` (new), `frontend/views/fixture_view.py` (new)
+- `frontend/streamlit_app.py` (`main()` is now a navigation shell; the old
+  `_render_summary()` was replaced by the views)
+- `.streamlit/config.toml` (new)
+- `tests/test_phase2.py`, `tests/test_phase7_frontend.py` (additive tests only)
+- `frontend/README.md`, `README.md`,
+  `.agent/plans/phase-12-frontend-refresh.md`, `.agent/PLANS.md`, `STATUS.md`,
+  `HANDOFF.md`
+
+Decisions made:
+
+- No dependency added. Streamlit was already declared; `pandas` and `altair`
+  ship as Streamlit transitive dependencies and are deliberately not imported so
+  the `pyproject.toml` list asserted by `tests/test_phase0_foundation` stays
+  unchanged.
+- The frontend is strictly read-only: no `run_live`, no provider calls, no
+  network, no database writes. `require_database()` refuses to open a
+  nonexistent path so browsing cannot create an empty SQLite file.
+- A released brief is re-rendered from persisted artifacts with
+  `agents.renderer.render_brief()` — the same reconstruction the orchestrator
+  performs for a completed run — and its `utils.compute_sha256()` hash is
+  compared against the stored `rendered_brief_hash`, so the page proves
+  integrity instead of claiming it.
+- `orchestrator.py` and `cli.py` were not touched, so the Phase 6 offline-guard
+  source scan passes unmodified.
+- All view text is HTML-escaped in `frontend/theme.py`; scraped snapshot text,
+  quote blocks, claims, and source URLs are untrusted content.
+
+Commands run and exact results:
+
+- `python -m pytest -q`: 316 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 39 files already formatted.
+- `python cli.py run-fixture tests/fixtures/basic_valid_run`: released, hash
+  `cfb4182d7469c05f269150605aa24907fbc850ea7f70e4e86633a9c96f60f1ed`
+  (unchanged).
+- `streamlit run frontend/streamlit_app.py`: both pages verified in a browser
+  against the real `live_runs.sqlite3`; `live_runs.sqlite3` was unchanged
+  afterwards.
+
+Known limitations:
+
+- The theme is dark only; there is no light variant.
+- The run list issues one Ledger-count query per run, which is fine at current
+  archive sizes but is a linear scan as runs accumulate.
+- Snapshot text is shown in full inside expanders; a very large snapshot makes
+  that tab heavy.
+- Streamlit auto-collapses (and unmounts) the sidebar on narrow viewports.
+
+Next exact task:
+
+- None pending from this work. Future frontend work should keep the read-only
+  boundary: anything that would start a run, spend model budget, or write to a
+  database needs explicit user direction first.
+
 ## 2026-07-17 - Post-MVP Live Web Integration (Phase 11)
 
 Current branch:

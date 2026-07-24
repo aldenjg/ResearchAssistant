@@ -1,5 +1,81 @@
 # Status
 
+## 2026-07-24 - Post-MVP Frontend Refresh and Read-Only Run Browser (Phase 12)
+
+Status: Complete. No pipeline behavior changed.
+
+Completed:
+
+- Added `store.read_run_manifests()`: a read-only listing of persisted runs,
+  newest first, reusing `_row_to_run()`. An uninitialised database raises
+  `KeyError` rather than returning an empty list. No schema change.
+- Added `frontend/run_reader.py`: typed, Streamlit-free adapters over the
+  existing store readers. `list_run_cards()` and `load_run_detail()` assemble a
+  run's manifest, planner output, retrievals, snapshots, provisional
+  extractions, candidates, Analyst decisions, drafts, Reviewer results, Ledger
+  records, synthesis, validation, and audited model attempts. Partial runs
+  contribute empty collections instead of failing. Released briefs are
+  re-rendered with `agents.renderer.render_brief()` and hashed with
+  `utils.compute_sha256()` so the UI verifies the validator's stored hash rather
+  than asserting it. `require_database()` refuses to open a nonexistent path, so
+  browsing never creates a stray SQLite file.
+- Added `frontend/theme.py` and `frontend/assets/app.css`: page configuration,
+  stylesheet injection, and escaped HTML builders (status pill, stat card,
+  evidence funnel, two-axis score meter, stage timeline, verdict banner, hash
+  chip, tables, empty states, brief wrapper).
+- Added `frontend/views/runs_view.py`: a read-only run browser with a run list
+  and a detail page (verdict, stats, stage timeline, evidence funnel, and Brief /
+  Ledger / Evidence / Decisions / Validation / Model attempts tabs).
+- Added `frontend/views/fixture_view.py`: the restyled fixture page, calling the
+  unchanged `discover_fixture_runs()` and `run_fixture_for_frontend()` with the
+  same `phase7a_summary` session key.
+- Reworked `frontend/streamlit_app.py:main()` into a two-page navigation shell
+  and removed the raw `st.json`/`st.dataframe` renderer. Every public helper the
+  Phase 7A tests import is unchanged.
+- Added `.streamlit/config.toml` (dark theme matching the stylesheet, usage
+  statistics disabled).
+- Added `.agent/plans/phase-12-frontend-refresh.md` and linked it from
+  `.agent/PLANS.md`; updated `README.md` and `frontend/README.md`.
+
+Not completed (deliberately out of scope):
+
+- No dependency was added; `pandas` and `altair` are Streamlit transitive
+  dependencies and are not imported. No React, no FastAPI.
+- The UI cannot start a live run, call a provider, reach the network, or write to
+  a run database. Runs are still started from the CLI.
+- `orchestrator.py`, `cli.py`, `models.py`, `agents/`, `providers/`, `prompts/`,
+  and `evaluations/` were not touched; no schema change or migration.
+
+Tests added:
+
+- `tests/test_phase2.py`: `read_run_manifests()` newest-first ordering, empty
+  database, and uninitialised database raising.
+- `tests/test_phase7_frontend.py`: run listing, released-run detail reproducing
+  the stored brief hash, blocked-run detail with no brief, a run with no
+  synthesis or validation, a missing database, and an unknown run ID. No
+  existing test was modified.
+
+Verification:
+
+- `python -m pytest -q`: 316 passed, 1 skipped (was 307 passed, 1 skipped).
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: all files formatted.
+- `python cli.py run-fixture tests/fixtures/basic_valid_run`: released with the
+  unchanged hash
+  `cfb4182d7469c05f269150605aa24907fbc850ea7f70e4e86633a9c96f60f1ed`.
+- Browser check: the five persisted runs list correctly; released run
+  `50c39cb2-4853-4f3d-803e-2ee58c2daf70` shows its 18 -> 11 -> 11 -> 4 -> 2
+  funnel, 22 model attempts, both Ledger records with two-axis scores, and a
+  re-rendered brief matching hash `b47b11e4...8ac887ab`; failed runs render
+  partial state with explicit empty states. No console errors and no horizontal
+  overflow at 1440px or 375px.
+- `live_runs.sqlite3` size and modification time were unchanged after browsing.
+
+Known observations:
+
+- Streamlit auto-collapses the sidebar on narrow viewports and unmounts it; the
+  page selector is then reachable through the sidebar expander control.
+
 ## 2026-07-17 - First Released Live Run and Live-Tuning Fixes
 
 Status: Complete. The system released its first real end-to-end brief.

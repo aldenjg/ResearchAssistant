@@ -7,7 +7,9 @@ The requested `.agents/PLANS/` path is a compatibility mirror only when writable
 ## Current Project State
 
 The full Phase 0-10 roadmap is complete, plus the post-MVP live web
-integration described in `.agent/plans/phase-11-live-web-integration.md`.
+integration described in `.agent/plans/phase-11-live-web-integration.md` and
+the post-MVP frontend refresh described in
+`.agent/plans/phase-12-frontend-refresh.md`.
 See `STATUS.md` and `HANDOFF.md` for the latest verified state. The section
 below is retained as a historical point-in-time record.
 
@@ -339,3 +341,26 @@ Explicitly out of scope:
 - Changes to deterministic gates, routing defaults, or earlier tests
 
 Completion signal: Offline adapter tests pass; the Phase 6 offline-guard test passes unmodified; a live scraper smoke test succeeds; `python cli.py run "<claim>"` drives the Phase 9 orchestrator end-to-end once `OPENAI_API_KEY` and a search API key are configured.
+
+## Phase 12 (post-MVP): Frontend Refresh and Read-Only Run Browser
+
+Purpose: Replace the Phase 7A basic fixture screen with a designed local frontend and make persisted run artifacts inspectable in the browser, without changing any pipeline behavior.
+
+Main files expected:
+
+- `frontend/theme.py`, `frontend/assets/app.css`
+- `frontend/run_reader.py`
+- `frontend/views/runs_view.py`, `frontend/views/fixture_view.py`
+- `frontend/streamlit_app.py` (navigation shell; existing helpers unchanged)
+- `store.py` (`read_run_manifests()` read-only listing)
+- `.streamlit/config.toml`
+- `.agent/plans/phase-12-frontend-refresh.md`
+
+Explicitly out of scope:
+
+- New dependencies, React, FastAPI
+- Starting live runs, network calls, or any database write from the UI
+- Schema changes, migrations, or changes to deterministic gates
+- Authentication, user accounts, uploads
+
+Completion signal: The frontend lists persisted runs, reconstructs a released brief whose recomputed hash matches the stored validator hash, renders partial and failed runs without error, and restyles the fixture page while leaving its behavior and public helpers unchanged. Additive tests cover the store listing and the run reader; the full suite, ruff check, and ruff format all pass.
