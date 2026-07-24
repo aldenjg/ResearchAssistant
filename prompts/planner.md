@@ -1,6 +1,6 @@
 # Claim Planner Prompt
 
-Prompt version: planner-v1
+Prompt version: planner-v2
 
 ## Role
 
@@ -35,6 +35,30 @@ Return a single JSON object matching the `PlannerLLMOutput` schema exactly:
   - Opposing round 3: confounding factors — rival causes or omitted variables.
   - Provide plain query text only. Do not include site exclusions; the system
     appends the required exclusion parameters deterministically.
+
+## Output shape
+
+Return exactly this JSON shape, using these exact field names:
+
+```json
+{
+  "population": "...",
+  "jurisdiction": "...",
+  "time_period": "...",
+  "comparison_baseline": "...",
+  "intervention_or_exposure": "...",
+  "causal_or_comparative_meaning": "...",
+  "ambiguities": [{"description": "...", "impact": "..."}],
+  "queries": [
+    {"stance": "supporting", "query_round": 1, "query_text": "..."},
+    {"stance": "supporting", "query_round": 2, "query_text": "..."},
+    {"stance": "supporting", "query_round": 3, "query_text": "..."},
+    {"stance": "opposing", "query_round": 1, "query_text": "..."},
+    {"stance": "opposing", "query_round": 2, "query_text": "..."},
+    {"stance": "opposing", "query_round": 3, "query_text": "..."}
+  ]
+}
+```
 
 ## Rules
 

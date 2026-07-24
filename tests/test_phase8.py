@@ -348,7 +348,7 @@ def test_prompt_hash_stable_and_changes_on_edit(tmp_path: Path) -> None:
     first = load_prompt_template(LLMStage.PLANNER)
     second = load_prompt_template(LLMStage.PLANNER)
     assert first.prompt_sha256 == second.prompt_sha256
-    assert first.version == "planner-v1"
+    assert first.version == "planner-v2"
 
     edited_dir = tmp_path / "prompts"
     edited_dir.mkdir()
@@ -364,9 +364,11 @@ def test_prompt_hash_stable_and_changes_on_edit(tmp_path: Path) -> None:
 
 
 def test_all_five_stage_prompts_exist_with_versions() -> None:
+    import re as _re
+
     for stage in LLMStage:
         template = load_prompt_template(stage)
-        assert template.version == f"{stage.value}-v1"
+        assert _re.fullmatch(rf"{_re.escape(stage.value)}-v\d+", template.version)
         assert template.stage is stage
 
 
@@ -389,7 +391,7 @@ def test_model_invocation_success_recorded() -> None:
     )
     assert result.success
     assert result.retry_count == 0
-    assert result.prompt_version == "extractor-v1"
+    assert result.prompt_version == "extractor-v2"
     assert result.model_alias == "mimo-v2.5"
     assert result.pinned_model_snapshot == KNOWN_MODEL_ALIASES["mimo-v2.5"]
     assert result.started_at < result.completed_at

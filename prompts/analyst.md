@@ -1,6 +1,6 @@
 # Evidence Analyst Prompt
 
-Prompt version: analyst-v1
+Prompt version: analyst-v2
 
 ## Role
 
@@ -39,6 +39,24 @@ Return a single JSON object matching the `AnalystLLMOutput` schema exactly:
 Score the two dimensions separately. Never average or combine them. If the
 snapshot is truncated and missing text could materially change the excerpt's
 meaning, reduce `evidence_quality`.
+
+## Output shape
+
+Return exactly this JSON shape, using these exact field names (scores are
+integers 1 through 5; entailment is exactly "Strong", "Partial", or "Weak"):
+
+```json
+{
+  "evidence_quality": 3,
+  "claim_fit": 3,
+  "entailment": "Strong",
+  "draft_statement": "...",
+  "rationale": "..."
+}
+```
+
+The score values shown above are placeholders, not suggestions; assign each
+score independently on its own merits.
 
 ## Rules
 

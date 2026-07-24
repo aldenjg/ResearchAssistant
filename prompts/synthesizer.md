@@ -1,6 +1,6 @@
 # Debate Synthesizer Prompt
 
-Prompt version: synthesizer-v1
+Prompt version: synthesizer-v2
 
 ## Role
 
@@ -17,6 +17,19 @@ Return a single JSON object matching the `SynthesizerLLMOutput` schema exactly:
 - `supporting_heading`: a neutral heading for the supporting-evidence section.
 - `opposing_heading`: a neutral heading for the opposing-evidence section.
 - `limitations_heading`: a neutral heading for the limitations section.
+
+## Output shape
+
+Return exactly this JSON shape, using these exact field names:
+
+```json
+{
+  "title": "...",
+  "supporting_heading": "...",
+  "opposing_heading": "...",
+  "limitations_heading": "..."
+}
+```
 
 ## Rules
 

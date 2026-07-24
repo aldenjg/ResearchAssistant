@@ -1,6 +1,6 @@
 # Evidence Extractor Prompt
 
-Prompt version: extractor-v1
+Prompt version: extractor-v2
 
 ## Role
 
@@ -38,6 +38,16 @@ Return a single JSON object matching the `ExtractorLLMOutput` schema exactly:
 - Use `[Start of Text]` or `[End of Text]` only at the true start or end of the
   snapshot. If the snapshot is truncated and the quote reaches the snapshot
   boundary, use `[Truncated End of Snapshot]` instead of `[End of Text]`.
+
+## Output shape
+
+Return exactly this JSON shape, using this exact field name:
+
+```json
+{"quote_blocks": ["[Preceding Sentence] \"Segment 1... Segment 2\" [Following Sentence]"]}
+```
+
+Return `{"quote_blocks": []}` when the snapshot contains no usable evidence.
 
 ## Rules
 

@@ -1,6 +1,6 @@
 # Statement Reviewer Prompt
 
-Prompt version: reviewer-v1
+Prompt version: reviewer-v2
 
 ## Role
 
@@ -29,6 +29,23 @@ Return a single JSON object matching the `ReviewerLLMOutput` schema exactly:
   with the assigned Claim Fit score. A Claim Fit 3 statement must not read as
   though it directly addresses the full claim.
 - `rationale`: a brief audit note.
+
+## Output shape
+
+Return exactly this JSON shape, using these exact field names:
+
+```json
+{
+  "fully_entailed": true,
+  "qualifications_preserved": true,
+  "neutral_framing": true,
+  "claim_fit_scope_valid": true,
+  "rationale": "..."
+}
+```
+
+Each boolean reflects your own independent audit; the values above are
+placeholders, not suggestions.
 
 ## Rules
 
