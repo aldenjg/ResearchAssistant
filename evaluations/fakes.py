@@ -140,13 +140,12 @@ def synthesizer_payload() -> str:
 
 
 def good_quote_block_json() -> str:
-    quote = f'[{INTRO_SENTENCE}] "{QUOTE_SENTENCE}" [{CLOSING_SENTENCE}]'
-    return json.dumps({"quote_blocks": [quote]})
+    return json.dumps({"quote_blocks": [{"segments": [QUOTE_SENTENCE]}]})
 
 
 def bad_quote_block_json() -> str:
     return json.dumps(
-        {"quote_blocks": [f'[Nope.] "This text is {FABRICATED_QUOTE_MARKER}." [Also nope.]']}
+        {"quote_blocks": [{"segments": [f"This text is {FABRICATED_QUOTE_MARKER}."]}]}
     )
 
 
@@ -252,8 +251,7 @@ class StageLLM:
             text = labeled.split(UNTRUSTED_TEXT_BEGIN + "\n", 1)[1]
             text = text.rsplit("\n" + UNTRUSTED_TEXT_END, 1)[0]
             sentences = [s.strip() for s in re.findall(r"[^.!?]+[.!?]", text)]
-            quote = f'[{sentences[0]}] "{sentences[1]}" [{sentences[2]}]'
-            return json.dumps({"quote_blocks": [quote]})
+            return json.dumps({"quote_blocks": [{"segments": [sentences[1]]}]})
         if request.stage is LLMStage.ANALYST:
             return analyst_payload()
         if request.stage is LLMStage.REVIEWER:

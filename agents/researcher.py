@@ -138,6 +138,35 @@ def parse_extracted_quote_block(extracted_quote_block: str) -> ParsedQuoteBlock:
     )
 
 
+def assemble_quote_block(snapshot: SourceSnapshot, segments: list[str]) -> str:
+    """Deterministically derive the bracketed quote block for verbatim segments.
+
+    The extraction model supplies only exact quoted segments; this function
+    locates them in the trusted snapshot and captures the immediate
+    preceding/following sentences (or the architecture's boundary markers)
+    itself, so macro-bracket context always reflects the real source text.
+    Raises ``ValueError`` when a segment is not verbatim snapshot text.
+    """
+    cleaned = [segment.strip() for segment in segments]
+    if not cleaned or any(segment == "" for segment in cleaned):
+        raise ValueError("quote segments must be non-empty verbatim text")
+    text = snapshot.normalized_text
+    offsets = find_segment_offsets(text, cleaned)
+    previous = _previous_sentence(text, offsets[0].start_char)
+    following = _following_sentence(text, offsets[-1].end_char)
+    if previous is None:
+        preceding_text = START_MARKER
+    else:
+        preceding_text = previous.text
+    if following is None:
+        preceding_boundary = TRUNCATED_END_MARKER if snapshot.truncated else END_MARKER
+        following_text = preceding_boundary
+    else:
+        following_text = following.text
+    quoted = " ... ".join(cleaned)
+    return f'[{preceding_text}] "{quoted}" [{following_text}]'
+
+
 def find_segment_offsets(normalized_text: str, segments: list[str]) -> list[SegmentOffset]:
     offsets: list[SegmentOffset] = []
     search_start = 0

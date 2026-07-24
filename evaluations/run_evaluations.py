@@ -29,6 +29,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from agents.renderer import validate_final_release  # noqa: E402
 from agents.researcher import (  # noqa: E402
+    assemble_quote_block,
     build_source_snapshot,
     filter_provisional_candidate,
     parse_extracted_quote_block,
@@ -173,7 +174,12 @@ def _classify_extractor_outcome(
         return "empty"
     passes = 0
     quote_failures = 0
-    for index, quote_block in enumerate(output.quote_blocks):
+    for index, quote in enumerate(output.quote_blocks):
+        try:
+            quote_block = assemble_quote_block(snapshot, quote.segments)
+        except ValueError:
+            quote_failures += 1
+            continue
         provisional = ProvisionalCandidate(
             run_id=snapshot.run_id,
             stance=Stance.SUPPORTING,

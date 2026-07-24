@@ -142,11 +142,7 @@ def planner_payload() -> str:
 
 def extractor_payload() -> str:
     return json.dumps(
-        {
-            "quote_blocks": [
-                '[Intro sentence.] "Quoted segment one... Quoted segment two." [Next sentence.]'
-            ]
-        }
+        {"quote_blocks": [{"segments": ["Quoted segment one.", "Quoted segment two."]}]}
     )
 
 
@@ -317,7 +313,7 @@ def test_non_json_and_wrong_schema_responses_rejected() -> None:
 def test_extra_fields_rejected() -> None:
     payload = json.dumps(
         {
-            "quote_blocks": ['[A.] "Quoted." [B.]'],
+            "quote_blocks": [{"segments": ["Quoted."]}],
             "confidence": 0.99,
         }
     )
@@ -329,7 +325,7 @@ def test_extra_fields_rejected() -> None:
 def test_model_cannot_create_evidence_ids() -> None:
     payload = json.dumps(
         {
-            "quote_blocks": ['[A.] "Quoted." [B.]'],
+            "quote_blocks": [{"segments": ["Quoted."]}],
             "quote_block_id": str(uuid4()),
         }
     )
@@ -391,7 +387,7 @@ def test_model_invocation_success_recorded() -> None:
     )
     assert result.success
     assert result.retry_count == 0
-    assert result.prompt_version == "extractor-v2"
+    assert result.prompt_version == "extractor-v3"
     assert result.model_alias == "mimo-v2.5"
     assert result.pinned_model_snapshot == KNOWN_MODEL_ALIASES["mimo-v2.5"]
     assert result.started_at < result.completed_at

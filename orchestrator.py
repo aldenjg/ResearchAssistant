@@ -25,6 +25,7 @@ from agents.opposingresearcher import retrieve_opposing
 from agents.planner import build_planner_output
 from agents.renderer import render_brief, validate_final_release
 from agents.researcher import (
+    assemble_quote_block,
     filter_provisional_candidate,
     validate_snapshot_integrity,
 )
@@ -1670,7 +1671,12 @@ def _make_extraction_gate(
             return None
         passes = 0
         quote_failures = 0
-        for quote_block in output.quote_blocks:
+        for quote in output.quote_blocks:
+            try:
+                quote_block = assemble_quote_block(snapshot, quote.segments)
+            except ValueError:
+                quote_failures += 1
+                continue
             provisional = _build_provisional(
                 ctx, snapshot, retrieval, query, quote_block, invocation
             )
@@ -1709,7 +1715,12 @@ def _filter_extraction_output(
     assert isinstance(output, ExtractorLLMOutput)
     provisionals: list[ProvisionalCandidate] = []
     candidates: list[CandidateQuoteBlock] = []
-    for quote_block in output.quote_blocks:
+    for quote in output.quote_blocks:
+        try:
+            quote_block = assemble_quote_block(snapshot, quote.segments)
+        except ValueError:
+            # Non-verbatim segments never become provisional artifacts.
+            continue
         provisional = _build_provisional(ctx, snapshot, retrieval, query, quote_block, invocation)
         provisionals.append(provisional)
         result = filter_provisional_candidate(

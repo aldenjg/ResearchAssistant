@@ -370,8 +370,19 @@ class PlannerLLMOutput(StrictModel):
         return self
 
 
+class ExtractedQuote(StrictModel):
+    """Verbatim quoted segments in document order.
+
+    The model supplies only the exact segments; the deterministic layer
+    derives the macro-bracket context sentences directly from the trusted
+    snapshot, so context can never be stripped or fabricated by the model.
+    """
+
+    segments: Annotated[list[Annotated[str, Field(min_length=1)]], Field(min_length=1)]
+
+
 class ExtractorLLMOutput(StrictModel):
-    quote_blocks: list[Annotated[str, Field(min_length=1)]]
+    quote_blocks: list[ExtractedQuote]
 
 
 class AnalystLLMOutput(StrictModel):
