@@ -9,7 +9,8 @@ The requested `.agents/PLANS/` path is a compatibility mirror only when writable
 The full Phase 0-10 roadmap is complete, plus the post-MVP live web
 integration described in `.agent/plans/phase-11-live-web-integration.md` and
 the post-MVP frontend refresh described in
-`.agent/plans/phase-12-frontend-refresh.md`.
+`.agent/plans/phase-12-frontend-refresh.md`, and frontend-launched live runs
+described in `.agent/plans/phase-13-frontend-live-runs.md`.
 See `STATUS.md` and `HANDOFF.md` for the latest verified state. The section
 below is retained as a historical point-in-time record.
 
@@ -364,3 +365,25 @@ Explicitly out of scope:
 - Authentication, user accounts, uploads
 
 Completion signal: The frontend lists persisted runs, reconstructs a released brief whose recomputed hash matches the stored validator hash, renders partial and failed runs without error, and restyles the fixture page while leaving its behavior and public helpers unchanged. Additive tests cover the store listing and the run reader; the full suite, ruff check, and ruff format all pass.
+
+## Phase 13 (post-MVP): Live Runs from the Frontend
+
+Purpose: Start new claims and resume unfinished runs from the browser, lifting the Phase 12 read-only boundary under explicit user direction, without changing pipeline behavior.
+
+Main files expected:
+
+- `frontend/run_launcher.py` (pre-flight, threaded run, cancellation, progress)
+- `frontend/views/launch_view.py`
+- `frontend/views/runs_view.py` (resume entry point), `frontend/streamlit_app.py` (nav)
+- `tests/test_frontend_launcher.py`
+- `.agent/plans/phase-13-frontend-live-runs.md`
+
+Explicitly out of scope:
+
+- New dependencies
+- Any change to `orchestrator.py`, `cli.py`, `models.py`, `agents/`, `providers/`, or `prompts/`
+- Schema changes, migrations, or changes to deterministic gates
+- Live-network tests; every new test uses injected fake providers
+- Scheduling, queuing, or multiple concurrent runs per session
+
+Completion signal: The launcher starts a run on a worker thread with a model-attempt budget, reports live stage/funnel/token progress from persisted state, cancels at the next stage boundary, resumes a failed run by ID, and blocks starting until pre-flight configuration is complete. Offline tests cover start, cancel, resume plumbing, progress, and configuration failure; the full suite, ruff check, and ruff format all pass.

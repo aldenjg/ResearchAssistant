@@ -1,5 +1,93 @@
 # Status
 
+## 2026-07-24 - Live Runs from the Frontend (Phase 13)
+
+Status: Complete, including an end-to-end live run started from the browser.
+
+The Phase 12 read-only boundary was lifted by explicit user direction: the frontend
+can now start new claims and resume unfinished runs. No pipeline logic changed.
+
+Completed:
+
+- Added `frontend/run_launcher.py`, the frontend's only write path and Streamlit-free
+  so it stays testable headlessly:
+  - `preflight()` composes `missing_llm_configuration()`, `missing_search_configuration()`,
+    `resolve_search_vendor()`, and `model_map_from_env()` into a typed report of vendor,
+    key presence, alias-to-model mapping, and blocking problems. Key values are never
+    read into the report; a malformed `LLM_MODEL_MAP` is reported as a problem.
+  - `LiveRunRequest` validates claim, database path, vendor, model-attempt budget, and
+    optional resume run ID.
+  - `start_run()` assigns the run ID before starting so progress can be polled
+    immediately, then drives `orchestrator.run_live()` on a daemon thread with
+    `cancel_check` and a `RunBudgets` budget. `provider_factory` defaults to
+    `cli._build_live_providers` and is the documented injection seam.
+  - `RunHandle` exposes `is_running()`, `wait()`, `cancel()`, `cancel_requested()`,
+    `outcome()`, and `error()`.
+  - `progress()` wraps `inspect_run()` and `read_stage_model_attempts_for_run()` into a
+    typed snapshot including token spend, and never creates a database file.
+- Added `frontend/views/launch_view.py`: pre-flight card, claim form, vendor selector,
+  budget input, explicit cost acknowledgement, live monitor (stage timeline, evidence
+  funnel, attempts against budget, tokens), Cancel, and the resume confirmation panel.
+- Added a "Resume this run" button to failed and cancelled runs in `runs_view`; it only
+  navigates, so the launcher keeps the single confirmation point that spends money.
+- Reworked navigation into three pages and added a pending-navigation key applied before
+  the nav widget is created (Streamlit forbids writing a widget's state key after the
+  widget exists; the first implementation hit that and was fixed).
+
+Not completed (deliberately):
+
+- No dependency was added; `threading` is stdlib.
+- `orchestrator.py`, `cli.py`, `models.py`, `agents/`, `providers/`, and `prompts/` were
+  not modified, so the Phase 6 offline-guard scan still passes unmodified.
+
+First live run started from the frontend:
+
+- Claim "Four-day work weeks reduce employee burnout.", run_id
+  f2b68873, vendor serper, model gpt-5.4-nano, budget 120.
+- Funnel: 18 retrieval attempts -> 8 unique snapshots -> 15 provisional extractions
+  -> 1 gate-passing candidate -> 1 Analyst decision -> 0 Ledger records.
+- Outcome `failed`, with the explicit reason "no approved statements entered the
+  Ledger: reviewer rejected 04fdfc8d-12e4-5494-94c3-293656e8a82a after one revision
+  (not_entailed)". 13 model attempts (0 retries, 0 fallbacks), 35,667 input and
+  2,523 output tokens.
+- This is the gate chain working, not a frontend defect: the Statement Reviewer
+  refused a statement it judged unentailed by its quote, and with no approved
+  statement the run failed explicitly rather than releasing unsupported text.
+- The UI drove the whole loop: pre-flight gating, Start, live stage/funnel/token
+  progress, the explicit failure verdict, and navigation into the run's detail page.
+
+Retrieval quality is the open question for this claim: only 8 of 18 retrieval
+attempts produced unique snapshots and only 1 of 15 extractions passed the
+quotation gate, which matches the Phase 11 observation that query strategy and
+source filtering are the highest-leverage quality improvements.
+
+Tests added:
+
+- `tests/test_frontend_launcher.py`: 11 offline tests using the `evaluations/fakes.py`
+  provider stack — pre-flight missing/ready/malformed-map, claim and budget validation,
+  a complete run reaching `released`, progress tracking, deterministic cancellation,
+  provider-configuration failure surfaced on the handle, unknown-run progress, and proof
+  that polling never creates a database file. No network call, no key, no model spend.
+
+Verification:
+
+- `python -m pytest -q`: 327 passed, 1 skipped (was 316 passed, 1 skipped).
+- `python -m ruff check .` and `python -m ruff format --check .`: clean.
+- Browser checks: the pre-flight card reported `BRAVE_API_KEY is not set` for the default
+  vendor and flipped to ready on serper; Start stayed disabled until configuration,
+  claim, and acknowledgement were all satisfied; "Resume this run" on failed run
+  `9c1345fb` navigated to the launcher and showed the original claim, the stage it
+  stopped at, the spend notice, and a disabled Resume button; the live run above was
+  started, monitored, and opened in the run browser.
+
+Known observations:
+
+- The repository `.env` sets `SERPER_API_KEY` but not `SEARCH_PROVIDER`, so the default
+  vendor resolves to brave and pre-flight correctly reports the brave key as missing.
+  Selecting serper in the UI, or setting `SEARCH_PROVIDER=serper`, resolves it.
+- Cancellation lands at the next stage boundary, not immediately.
+- Closing the browser does not stop a run; the worker thread finishes and persists it.
+
 ## 2026-07-24 - Post-MVP Frontend Refresh and Read-Only Run Browser (Phase 12)
 
 Status: Complete. No pipeline behavior changed.

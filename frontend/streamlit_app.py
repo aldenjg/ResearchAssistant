@@ -17,6 +17,9 @@ from orchestrator import FixturePipelineResult, run_fixture_pipeline  # noqa: E4
 REPO_ROOT = PROJECT_ROOT
 DEFAULT_FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
 DEFAULT_DB_PATH = "live_runs.sqlite3"
+NAV_KEY = "nav_page"
+NAV_REQUEST_KEY = "nav_page_request"
+LAUNCH_PAGE = "New run"
 RUNS_PAGE = "Runs"
 FIXTURE_PAGE = "Fixture pipeline"
 REQUIRED_FIXTURE_FILES = (
@@ -189,29 +192,41 @@ def summarize_fixture_result(result: FixturePipelineResult) -> FrontendRunSummar
 
 
 def main() -> None:
-    """Entry point: a two-page shell over the pipeline's own artifacts."""
+    """Entry point: a three-page shell over the pipeline and its artifacts."""
     st = _load_streamlit()
 
     from frontend import theme
-    from frontend.views import fixture_view, runs_view
+    from frontend.views import fixture_view, launch_view, runs_view
 
     theme.apply_theme("Debate Research Agent System")
+
+    # Streamlit forbids writing a widget's state key once that widget exists,
+    # so cross-page navigation is requested here and applied before the radio
+    # is created.
+    requested_page = st.session_state.pop(NAV_REQUEST_KEY, None)
+    if requested_page is not None:
+        st.session_state[NAV_KEY] = requested_page
 
     with st.sidebar:
         theme.write(theme.brand())
         page = st.radio(
             "Page",
-            (RUNS_PAGE, FIXTURE_PAGE),
+            (LAUNCH_PAGE, RUNS_PAGE, FIXTURE_PAGE),
             label_visibility="collapsed",
+            key=NAV_KEY,
         )
         db_path = st.text_input("Run database", value=DEFAULT_DB_PATH)
         theme.write(
-            '<div class="empty-hint">Read-only. Runs are started from the CLI:'
-            "<br/>python cli.py run &quot;claim&quot;</div>"
+            '<div class="empty-hint">Live runs call the web and your model'
+            "<br/>endpoint, and spend API credits.</div>"
         )
 
+    resolved_db = db_path.strip() or DEFAULT_DB_PATH
+    if page == LAUNCH_PAGE:
+        launch_view.render(resolved_db)
+        return
     if page == RUNS_PAGE:
-        runs_view.render(db_path.strip() or DEFAULT_DB_PATH)
+        runs_view.render(resolved_db)
         return
     fixture_view.render()
 

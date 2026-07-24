@@ -131,9 +131,14 @@ def _run_card(card: RunCard) -> str:
 def _render_detail(db_path: str, run_id: UUID) -> None:
     detail = load_run_detail(db_path, run_id)
 
-    if st.button("← All runs", key="back-to-runs"):
-        st.session_state.pop(SELECTED_RUN_KEY, None)
-        st.rerun()
+    back_col, resume_col = st.columns([1, 4])
+    with back_col:
+        if st.button("← All runs", key="back-to-runs"):
+            st.session_state.pop(SELECTED_RUN_KEY, None)
+            st.rerun()
+    with resume_col:
+        if detail.outcome in {"failed", "cancelled"}:
+            _render_resume_button(run_id)
 
     theme.write(_verdict(detail))
     theme.write(theme.stat_grid(_detail_stats(detail)))
@@ -162,6 +167,22 @@ def _render_detail(db_path: str, run_id: UUID) -> None:
         _render_validation(detail)
     with attempts_tab:
         _render_attempts(detail.attempts)
+
+
+def _render_resume_button(run_id: UUID) -> None:
+    """Hand an unfinished run to the launcher page for confirmation.
+
+    Resuming spends credits, so this only navigates; the launcher owns the
+    single confirmation step that actually starts a run.
+    """
+    from frontend.streamlit_app import LAUNCH_PAGE, NAV_REQUEST_KEY
+    from frontend.views.launch_view import RESUME_REQUEST_KEY
+
+    if st.button("Resume this run", key=f"resume-{run_id}"):
+        st.session_state[RESUME_REQUEST_KEY] = str(run_id)
+        st.session_state[NAV_REQUEST_KEY] = LAUNCH_PAGE
+        st.session_state.pop(SELECTED_RUN_KEY, None)
+        st.rerun()
 
 
 def _verdict(detail: RunDetail) -> str:

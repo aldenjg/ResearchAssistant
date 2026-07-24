@@ -1,5 +1,74 @@
 # Handoff
 
+## 2026-07-24 - Live Runs from the Frontend (Phase 13)
+
+Current branch:
+
+- `master`, tracking `fork/master` (https://github.com/aldenjg/ResearchAssistant)
+
+Latest completed work:
+
+- The frontend can start new claims and resume unfinished runs. This lifts the
+  Phase 12 read-only boundary, under the explicit user direction that boundary
+  required. No pipeline logic changed.
+
+Files changed:
+
+- `frontend/run_launcher.py` (new), `frontend/views/launch_view.py` (new)
+- `frontend/views/runs_view.py` (resume entry point),
+  `frontend/streamlit_app.py` (three-page nav, pending-navigation key)
+- `tests/test_frontend_launcher.py` (new, 11 offline tests)
+- `.agent/plans/phase-13-frontend-live-runs.md`, `.agent/PLANS.md`,
+  `STATUS.md`, `HANDOFF.md`, `README.md`, `frontend/README.md`
+
+Decisions made:
+
+- A run executes on a daemon worker thread while the page polls the run's own
+  persisted checkpoints. Blocking the Streamlit script would freeze the page for
+  minutes with no progress and no cancel; the orchestrator already writes stage
+  and artifact state, so no new instrumentation was needed.
+- Cancellation is surfaced honestly: `_checkpoint()` is the only place
+  `cancel_check` runs, so a stage in flight finishes first and the UI says so.
+- Starting and resuming both route through one acknowledgement checkbox on the
+  launcher page, so exactly one place in the UI can spend money.
+- Pre-flight blocks Start until configuration is complete and names the exact
+  missing variable; key values are never read into the report.
+- `provider_factory` on `start_run()` defaults to `cli._build_live_providers`
+  and is the seam tests inject fakes through, mirroring
+  `tests/test_live_providers.py`.
+
+Commands run and exact results:
+
+- `python -m pytest -q`: 327 passed, 1 skipped.
+- `python -m ruff check .`: all checks passed.
+- `python -m ruff format --check .`: 42 files already formatted.
+- Browser verification of pre-flight gating, vendor switching, and the resume
+  navigation path, without starting a paid run.
+
+Live run executed from the UI:
+
+- Claim "Four-day work weeks reduce employee burnout.", run_id f2b68873,
+  vendor serper. Ended `failed` at the Reviewer gate ("not_entailed" after one
+  revision), 13 model attempts, ~38k tokens. The frontend behaved correctly
+  throughout; the failure is the Ledger gate refusing unsupported text. See
+  `STATUS.md` for the funnel.
+
+Known limitations:
+
+- Cancellation lands at the next stage boundary; closing the browser does not
+  stop a run; one active run per browser session.
+- Editing frontend modules requires restarting Streamlit — imported modules are
+  cached, and a stale module rendered with a fresh traceback is very misleading.
+- The repository `.env` has no `SEARCH_PROVIDER`, so the vendor defaults to brave
+  and pre-flight blocks until serper is selected in the UI (or the variable is
+  set).
+
+Next exact task:
+
+- None pending. If run quality is the next concern, the lever is retrieval:
+  this run yielded only 8 unique snapshots from 18 attempts and 1 gate-passing
+  candidate from 15 extractions.
+
 ## 2026-07-24 - Post-MVP Frontend Refresh and Read-Only Run Browser (Phase 12)
 
 Current branch:

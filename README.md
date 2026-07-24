@@ -22,14 +22,14 @@ The run ends in an explicit state: `released` prints the final brief and its has
 streamlit run frontend/streamlit_app.py
 ```
 
-The frontend is read-only over run databases: it shows the release verdict, evidence funnel, Ledger records with their two-axis scores, provenance, validator errors, and audited model attempts, and verifies a released brief's hash by re-rendering it from persisted artifacts. Runs are started from the CLI only. See `frontend/README.md`.
+The frontend shows the release verdict, evidence funnel, Ledger records with their two-axis scores, provenance, validator errors, and audited model attempts, and verifies a released brief's hash by re-rendering it from persisted artifacts. It can also start a new claim and resume unfinished runs from its "New run" page, with a configuration pre-flight, a model-attempt budget, live progress, and cancellation — starting a run there spends API credits exactly as the CLI does. See `frontend/README.md`.
 
 ## Offline usage
 
 ```bash
 python cli.py run-fixture tests/fixtures/basic_valid_run   # deterministic fixture pipeline
 python evaluations/run_evaluations.py                      # offline evaluation + adversarial corpus
-streamlit run frontend/streamlit_app.py                    # local run browser + fixture frontend
+streamlit run frontend/streamlit_app.py                    # run launcher, run browser, fixture frontend
 ```
 
 ## Start here (for contributors and assistants)
