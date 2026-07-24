@@ -1,5 +1,52 @@
 # Status
 
+## 2026-07-17 - First Released Live Run and Live-Tuning Fixes
+
+Status: Complete. The system released its first real end-to-end brief.
+
+Run: claim "Remote work increased productivity in the United States.",
+run_id 50c39cb2-4853-4f3d-803e-2ee58c2daf70, status released, 2 Ledger
+records, rendered hash b47b11e4d8447c28e6e15dea74465a378edd8b74a432f24a4444
+5bf08ac887ab. Funnel: 18 retrieval attempts -> 11 unique snapshots -> 11
+provisional extractions -> 4 gate-passing candidates -> 4 analyst decisions
+-> 3 reviews -> 2 admitted statements. 22 model attempts, all succeeded on
+the primary route (0 retries, 0 fallbacks), ~50k input / ~3.4k output tokens
+on gpt-5.4-nano.
+
+Live-tuning fixes discovered by real runs (each committed separately):
+
+- Coordinator-side cross-stance snapshot deduplication: live search returns
+  the same URL for both stances; content-identical snapshots with the same
+  deterministic ID are now kept once (regression-tested).
+- Prompts v2: every stage prompt now shows its exact JSON output shape;
+  gpt-5.4-nano had guessed a `query` field name where `query_text` was
+  required.
+- Extractor v3: the model now returns structured verbatim segments
+  (`{"quote_blocks": [{"segments": [...]}]}`) and the deterministic layer
+  derives macro-bracket context from the trusted snapshot itself
+  (`assemble_quote_block` in `agents/researcher.py`), so context can never
+  be stripped or fabricated by the model. In-string bracket formatting was
+  the dominant live failure mode.
+- Analyst v3: qualified/Partial/Weak statements must carry explicit
+  qualification language; the deterministic Ledger gate had correctly
+  blocked unqualified narrow-claim statements that the prompt had not
+  taught the model to qualify.
+- Repository `.env` is now authoritative over stale machine-level
+  environment variables (`load_dotenv(override=True)`); a stale Windows-level
+  OPENAI_API_KEY had shadowed the project key.
+
+Verification: full suite 307 passed, 1 skipped; ruff check and format clean.
+
+Known observations for future tuning:
+
+- Stance is retrieval provenance, not semantic direction: a quote whose
+  content supports the claim can render in the opposing section when an
+  opposing query surfaced its page. Semantic stance reconciliation is a
+  candidate post-MVP improvement.
+- Live source quality for this claim skewed toward blogs/SEO pages; the
+  Analyst correctly scored them down. Query strategy tuning and source
+  filtering are the highest-leverage quality improvements.
+
 ## 2026-07-17 - Post-MVP Live Web Integration (Phase 11)
 
 Status: Complete. The system now runs end-to-end against the real web.
