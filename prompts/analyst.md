@@ -1,6 +1,6 @@
 # Evidence Analyst Prompt
 
-Prompt version: analyst-v2
+Prompt version: analyst-v3
 
 ## Role
 
@@ -34,6 +34,13 @@ Return a single JSON object matching the `AnalystLLMOutput` schema exactly:
   outside facts, standing alone grammatically, containing no rhetorical
   connective, and accurately reflecting the Claim Fit score. A Claim Fit 3
   statement must not imply the source directly addresses the full claim.
+  When `claim_fit` is 3, or `entailment` is Partial or Weak, the statement
+  must carry explicit qualification or scope language anchoring it to its
+  source — for example "According to ...", "reported", "surveyed", "among",
+  "suggests", "may", or "a limited sample" — such as: "According to a 2024
+  survey of 2,500 workers, respondents reported higher output when working
+  remotely." Unqualified statements are rejected deterministically in these
+  cases.
 - `rationale`: a brief justification of both scores.
 
 Score the two dimensions separately. Never average or combine them. If the
