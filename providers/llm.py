@@ -33,7 +33,9 @@ from pydantic import ValidationError as PydanticValidationError
 from models import Entailment, Score, Stance, StrictModel
 from utils import compute_sha256
 
-load_dotenv()
+# The repository .env is authoritative for this project: it overrides any
+# stale machine-level environment variables with the same names.
+load_dotenv(override=True)
 
 # ---------------------------------------------------------------------------
 # Errors

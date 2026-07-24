@@ -20,7 +20,9 @@ from pydantic import Field
 
 from models import StrictModel
 
-load_dotenv()
+# The repository .env is authoritative for this project: it overrides any
+# stale machine-level environment variables with the same names.
+load_dotenv(override=True)
 
 _MAX_RESPONSE_BYTES = 2_000_000
 
